@@ -1,3 +1,4 @@
 # DS store
-
+*_env
 .DS_Store
+*/__pycache__

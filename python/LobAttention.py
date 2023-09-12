@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from keras import backend as K
-from keras.engine import Layer
+from keras.layers import Layer
 from keras.utils import get_custom_objects
 # Based on MultiHeadSelfAttention from Keras-RL
 # https://github.com/kpot/keras-transformer/blob/master/keras_transformer/attention.py
@@ -33,14 +33,14 @@ class MultiHeadSelfAttention(Layer):
         if not isinstance(input_shape, tuple):
             raise ValueError('Invalid input')
         d_model = input_shape[-1]
-        
+
         self.validate_model_dimensionality(d_model)
         self.qkv_weights = self.add_weight(
             name='qkv_weights',
             shape=(d_model, d_model * 3),  # * 3 for q, k and v
             initializer='glorot_uniform',
             trainable=True)
-        
+
         return super().build(input_shape)
 
     def call(self, inputs, **kwargs):
@@ -48,7 +48,7 @@ class MultiHeadSelfAttention(Layer):
             raise ValueError(
                 'The layer can be called only with one tensor as an argument')
         _, seq_len, d_model = K.int_shape(inputs)
-        
+
         # Perform affine transformations to get the Queries, the Keys and the Values.
         qkv = K.dot(inputs, self.qkv_weights) # (-1,seq_len,d_model*3)
         qkv = K.reshape(qkv,[-1,d_model*3])
@@ -59,7 +59,7 @@ class MultiHeadSelfAttention(Layer):
                 qkv[:, i * d_model:(i + 1) * d_model],
                 (-1, seq_len, self.num_heads, d_model // self.num_heads))
             for i in range(3)]
-        
+
         attention_out = self.attention(pre_q, pre_v, pre_k, seq_len, d_model,
                                        training=kwargs.get('training'))
         # of shape (-1, seq_len, d_model)
@@ -68,14 +68,14 @@ class MultiHeadSelfAttention(Layer):
     def compute_output_shape(self, input_shape):
         shape_a, seq_len, d_model = input_shape
         return (shape_a, seq_len, d_model)
-    
+
     def validate_model_dimensionality(self, d_model: int):
         if d_model % self.num_heads != 0:
             raise ValueError(
                 f'The size of the last dimension of the input '
                 f'({d_model}) must be evenly divisible by the number'
                 f'of the attention heads {self.num_heads}')
-    
+
     def attention(self, pre_q, pre_v, pre_k, seq_len: int, d_model: int,
                   training=None):
         """
@@ -91,16 +91,16 @@ class MultiHeadSelfAttention(Layer):
           or inference phase.
         """
         d_submodel = d_model // self.num_heads
-        
+
         # shaping Q and V into (batch_size, num_heads, seq_len, d_model//heads)
         q = K.permute_dimensions(pre_q, [0, 2, 1, 3])
         v = K.permute_dimensions(pre_v, [0, 2, 1, 3])
         k = K.permute_dimensions(pre_k, [0, 2, 3, 1])
-        
+
         q = K.reshape(q, (-1,seq_len,d_submodel))
         k = K.reshape(k, (-1,seq_len,d_submodel))
         v = K.reshape(v, (-1,seq_len,d_submodel))
-        
+
         qk = tf.einsum('aib,ajb->aij', q, k)
         sqrt_d = K.constant(np.sqrt(d_model // self.num_heads),
                             dtype=K.floatx())
@@ -108,7 +108,7 @@ class MultiHeadSelfAttention(Layer):
         a = self.mask_attention(a)
         a = K.softmax(a)
         attention_heads = tf.einsum('aij,ajb->aib', a, v)
-        
+
         attention_heads = K.reshape(attention_heads, (-1, self.num_heads, seq_len, d_model))
         attention_heads = K.permute_dimensions(attention_heads, [0, 2, 1, 3])
         attention_heads = K.reshape(attention_heads,(-1, seq_len, d_model))

@@ -10,12 +10,11 @@ import math
 from typing import Union, Callable, Optional
 
 from keras.layers import Layer, Add, Dropout
-from tensorflow.keras.layers import InputSpec
 from keras import initializers, constraints, activations
 from keras import backend as K
 from keras.utils import get_custom_objects
 
-from tLobAttention import MultiHeadSelfAttention
+from LobAttention import MultiHeadSelfAttention
 
 
 class LayerNormalization(Layer):
@@ -137,7 +136,7 @@ class TransformerBlock:
     def __init__(self, name: str, num_heads: int,
                  use_masking: bool = True):
         self.attention_layer = MultiHeadSelfAttention(
-            num_heads, use_masking=use_masking, 
+            num_heads, use_masking=use_masking,
             name=f'{name}_self_attention')
         self.norm1_layer = LayerNormalization(name=f'{name}_normalization1')
         self.norm2_layer = LayerNormalization(name=f'{name}_normalization2')
@@ -155,9 +154,3 @@ class TransformerBlock:
             self.addition_layer([norm1_output, output]))
         output = self.norm2_layer(post_residual2)
         return output
-        
-        
-        
-        
-        
-        
