@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras import backend as K
 from keras.layers import Layer
-from keras.utils.generic_utils import get_custom_objects
+from keras.utils import get_custom_objects
 
 
 # Based on MultiHeadSelfAttention from Keras-RL
