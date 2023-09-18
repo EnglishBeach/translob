@@ -62,7 +62,7 @@ cnn = blocks.cnn_block(
 norm = blocks.norm_block(input_layer=cnn)
 pos = blocks.positional_encoder_block(input_layer=norm)
 transformer = blocks.transformer_block(
-    input_layer=pos,
+    x=pos,
     n_blocks=pars.an.blocks,
     n_heads=pars.an.blocks,
 )

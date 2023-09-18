@@ -46,8 +46,6 @@ class _PositionalEncodingLayer(_keras.layers.Layer):
 
     def call(self, x, *args, **kwargs):
         steps, d_model = x.get_shape()[-2:]
-        global A
-        A = x, steps, d_model
         ps = _np.zeros([steps, 1], dtype=_K.floatx())
         for step in range(steps):
             ps[step, :] = [(2 / (steps - 1)) * step - 1]
@@ -70,12 +68,8 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
     Base class for Multi-head Self-Attention layers.
     """
 
-    def __init__(
-        self,
-        num_heads: int,
-        use_masking: bool,
-        **kwargs,
-    ):
+    def __init__(self, num_heads: int, use_masking: bool,
+                 **kwargs):
         """
         :param num_heads: number of attention heads
         :param use_masking: when True, forbids the attention to see the further
@@ -104,8 +98,7 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
             name='qkv_weights',
             shape=(d_model, d_model * 3),  # * 3 for q, k and v
             initializer='glorot_uniform',
-            trainable=True,
-        )
+            trainable=True)
 
         return super().build(input_shape)
 
@@ -123,18 +116,11 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
         pre_q, pre_k, pre_v = [
             _K.reshape(
                 qkv[:, i * d_model:(i + 1) * d_model],
-                (-1, seq_len, self.num_heads, d_model // self.num_heads),
-            ) for i in range(3)
-        ]
+                (-1, seq_len, self.num_heads, d_model // self.num_heads))
+            for i in range(3)]
 
-        attention_out = self.attention(
-            pre_q,
-            pre_v,
-            pre_k,
-            seq_len,
-            d_model,
-            training=kwargs.get('training'),
-        )
+        attention_out = self.attention(pre_q, pre_v, pre_k, seq_len, d_model,
+                                       training=kwargs.get('training'))
         # of shape (-1, seq_len, d_model)
         return attention_out
 
@@ -149,15 +135,7 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
                 f'({d_model}) must be evenly divisible by the number'
                 f'of the attention heads {self.num_heads}')
 
-    def attention(
-        self,
-        pre_q,
-        pre_v,
-        pre_k,
-        seq_len: int,
-        d_model: int,
-        training=None,
-    ):
+    def attention(self, pre_q, pre_v, pre_k, seq_len: int, d_model: int, training=None):
         """
         Calculates the output of the attention once the affine transformations
         of the inputs are done. Here's the shapes of the arguments:
@@ -182,15 +160,12 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
         v = _K.reshape(v, (-1, seq_len, d_submodel))
         qk = _tf.einsum('aib,ajb->aij', q, k)
         sqrt_d = _K.constant(_np.sqrt(d_model // self.num_heads),
-                             dtype=_K.floatx())
+                            dtype=_K.floatx())
         a = qk / sqrt_d
         a = self.mask_attention(a)
         a = _K.softmax(a)
         attention_heads = _tf.einsum('aij,ajb->aib', a, v)
-        attention_heads = _K.reshape(
-            attention_heads,
-            (-1, self.num_heads, seq_len, d_submodel),
-        )
+        attention_heads = _K.reshape(attention_heads, (-1, self.num_heads, seq_len, d_submodel))
         attention_heads = _K.permute_dimensions(attention_heads, [0, 2, 1, 3])
         attention_heads = _K.reshape(attention_heads, (-1, seq_len, d_model))
 
@@ -208,20 +183,18 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
         last_dims = _K.int_shape(dot_product)[-2:]
         low_triangle_ones = (
             _np.tril(_np.ones(last_dims))
-            # to ensure proper broadcasting
-            .reshape((1, ) + last_dims))
+                # to ensure proper broadcasting
+                .reshape((1,) + last_dims))
         inverse_low_triangle = 1 - low_triangle_ones
         close_to_negative_inf = -1e9
-        result = (_K.constant(
-            low_triangle_ones,
-            dtype=_K.floatx(),
-        ) * dot_product +
-                  _K.constant(close_to_negative_inf * inverse_low_triangle), )
+        result = (
+                _K.constant(low_triangle_ones, dtype=_K.floatx()) * dot_product +
+                _K.constant(close_to_negative_inf * inverse_low_triangle))
         return result
 
 
 _get_custom_objects().update(
-    {'_MultiHeadSelfAttention': _MultiHeadSelfAttention})
+    {'MultiHeadSelfAttention': _MultiHeadSelfAttention,})
 
 
 class _LayerNormalization(_keras.layers.Layer):
@@ -391,22 +364,23 @@ class _TransformerBlock(_keras.layers.Layer):
 
 
 def transformer_block(input_layer,share_weights, n_blocks, n_heads):
+    x=input_layer
     tb=_TransformerBlock(
-            name=f'transformer_block_{block}',
-            num_heads=n_heads,
-            use_masking=True,
+            f'transformer_block',
+            n_heads,
+            True,
         )
     for block in range(n_blocks):
         if share_weights:
-            input_layer=tb(input_layer)
+            x=tb(x)
         else:
-            input_layer = _TransformerBlock(
-                name=f'transformer_block_{block}',
-                num_heads=n_heads,
-                use_masking=True,
-            )(input_layer)
+            x = _TransformerBlock(
+                f'transformer_block_{block}',
+                n_heads,
+                True,
+            )(x)
 
-    return input_layer
+    return x
 
 
 # FFN
