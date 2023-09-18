@@ -87,34 +87,34 @@ def lob_inception(x):
     return y
 
 
-def lob_dilated(x):
-    """
-  TransLOB dilated 1-D convolution module
-  """
-    x = layers.Conv1D(14,
-                      kernel_size=2,
-                      strides=1,
-                      activation='relu',
-                      padding='causal')(x)
-    x = layers.Conv1D(14,
-                      kernel_size=2,
-                      dilation_rate=2,
-                      activation='relu',
-                      padding='causal')(x)
-    x = layers.Conv1D(14,
-                      kernel_size=2,
-                      dilation_rate=4,
-                      activation='relu',
-                      padding='causal')(x)
-    x = layers.Conv1D(14,
-                      kernel_size=2,
-                      dilation_rate=8,
-                      activation='relu',
-                      padding='causal')(x)
-    y = layers.Conv1D(14,
-                      kernel_size=2,
-                      dilation_rate=16,
-                      activation='relu',
-                      padding='causal')(x)
+# def lob_dilated(x):
+#     """
+#   TransLOB dilated 1-D convolution module
+#   """
+#     x = layers.Conv1D(14,
+#                       kernel_size=2,
+#                       strides=1,
+#                       activation='relu',
+#                       padding='causal')(x)
+#     x = layers.Conv1D(14,
+#                       kernel_size=2,
+#                       dilation_rate=2,
+#                       activation='relu',
+#                       padding='causal')(x)
+#     x = layers.Conv1D(14,
+#                       kernel_size=2,
+#                       dilation_rate=4,
+#                       activation='relu',
+#                       padding='causal')(x)
+#     x = layers.Conv1D(14,
+#                       kernel_size=2,
+#                       dilation_rate=8,
+#                       activation='relu',
+#                       padding='causal')(x)
+#     y = layers.Conv1D(14,
+#                       kernel_size=2,
+#                       dilation_rate=16,
+#                       activation='relu',
+#                       padding='causal')(x)
 
-    return y
+#     return y
