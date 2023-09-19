@@ -12,7 +12,7 @@ from keras import activations
 from keras import backend as K
 from keras.layers import Layer, Add
 
-from .LobAttention import MultiHeadSelfAttention
+from LobAttention import MultiHeadSelfAttention
 
 
 class LayerNormalization(Layer):
