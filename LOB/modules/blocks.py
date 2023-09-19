@@ -20,16 +20,16 @@ def cnn_block(input_layer, filters=1, dilation_steps=0):
         2**dilation
         for dilation in range(dilation_steps + 1)
     ] # yapf: disable
-    x= input_layer
+    x = input_layer
     for dilation in dilation_steps:
-        layer= _keras.layers.Conv1D(
+        layer = _keras.layers.Conv1D(
             filters=filters,
             kernel_size=2,
             dilation_rate=dilation,
             activation='relu',
             padding='causal',
         )
-        x =layer(x)
+        x = layer(x)
     return x
 
 
@@ -41,7 +41,7 @@ def norm_block(input_layer):
 
 
 # Positional encoding
-class _PositionalEncodingLayer(_keras.layers.Layer):
+class PositionalEncoding(_keras.layers.Layer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -60,18 +60,17 @@ class _PositionalEncodingLayer(_keras.layers.Layer):
 
 
 def positional_encoder_block(input_layer):
-    pos = _PositionalEncodingLayer()(input_layer)
+    pos = PositionalEncoding()(input_layer)
     return pos
 
 
 # Transformer
-class _MultiHeadSelfAttention(_keras.layers.Layer):
+class MultiHeadSelfAttention(_keras.layers.Layer):
     """
     Base class for Multi-head Self-Attention layers.
     """
 
-    def __init__(self, num_heads: int, use_masking: bool,
-                 **kwargs):
+    def __init__(self, num_heads: int, use_masking: bool, **kwargs):
         """
         :param num_heads: number of attention heads
         :param use_masking: when True, forbids the attention to see the further
@@ -119,10 +118,17 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
             _K.reshape(
                 qkv[:, i * d_model:(i + 1) * d_model],
                 (-1, seq_len, self.num_heads, d_model // self.num_heads))
-            for i in range(3)]
+            for i in range(3)
+        ]
 
-        attention_out = self.attention(pre_q, pre_v, pre_k, seq_len, d_model,
-                                       training=kwargs.get('training'))
+        attention_out = self.attention(
+            pre_q,
+            pre_v,
+            pre_k,
+            seq_len,
+            d_model,
+            training=kwargs.get('training'),
+        )
         # of shape (-1, seq_len, d_model)
         return attention_out
 
@@ -137,7 +143,15 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
                 f'({d_model}) must be evenly divisible by the number'
                 f'of the attention heads {self.num_heads}')
 
-    def attention(self, pre_q, pre_v, pre_k, seq_len: int, d_model: int, training=None):
+    def attention(
+        self,
+        pre_q,
+        pre_v,
+        pre_k,
+        seq_len: int,
+        d_model: int,
+        training=None,
+    ):
         """
         Calculates the output of the attention once the affine transformations
         of the inputs are done. Here's the shapes of the arguments:
@@ -162,12 +176,13 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
         v = _K.reshape(v, (-1, seq_len, d_submodel))
         qk = _tf.einsum('aib,ajb->aij', q, k)
         sqrt_d = _K.constant(_np.sqrt(d_model // self.num_heads),
-                            dtype=_K.floatx())
+                             dtype=_K.floatx())
         a = qk / sqrt_d
         a = self.mask_attention(a)
         a = _K.softmax(a)
         attention_heads = _tf.einsum('aij,ajb->aib', a, v)
-        attention_heads = _K.reshape(attention_heads, (-1, self.num_heads, seq_len, d_submodel))
+        attention_heads = _K.reshape(attention_heads,
+                                     (-1, self.num_heads, seq_len, d_submodel))
         attention_heads = _K.permute_dimensions(attention_heads, [0, 2, 1, 3])
         attention_heads = _K.reshape(attention_heads, (-1, seq_len, d_model))
 
@@ -185,21 +200,22 @@ class _MultiHeadSelfAttention(_keras.layers.Layer):
         last_dims = _K.int_shape(dot_product)[-2:]
         low_triangle_ones = (
             _np.tril(_np.ones(last_dims))
-                # to ensure proper broadcasting
-                .reshape((1,) + last_dims))
+            # to ensure proper broadcasting
+            .reshape((1, ) + last_dims))
         inverse_low_triangle = 1 - low_triangle_ones
         close_to_negative_inf = -1e9
         result = (
-                _K.constant(low_triangle_ones, dtype=_K.floatx()) * dot_product +
-                _K.constant(close_to_negative_inf * inverse_low_triangle))
+            _K.constant(low_triangle_ones, dtype=_K.floatx()) * dot_product +
+            _K.constant(close_to_negative_inf * inverse_low_triangle))
         return result
 
 
-_get_custom_objects().update(
-    {'MultiHeadSelfAttention': _MultiHeadSelfAttention,})
+_get_custom_objects().update({
+    'MultiHeadSelfAttention': MultiHeadSelfAttention,
+})
 
 
-class _LayerNormalization(_keras.layers.Layer):
+class CustomNormalization(_keras.layers.Layer):
     """
     Implementation of Layer Normalization (https://arxiv.org/abs/1607.06450).
     """
@@ -249,7 +265,7 @@ class _LayerNormalization(_keras.layers.Layer):
         return result
 
 
-class _TransformerTransition(_keras.layers.Layer):
+class TransformerTransition(_keras.layers.Layer):
     """
     Transformer transition function. The same function is used both
     in classical in Universal Transformers.
@@ -320,7 +336,7 @@ class _TransformerTransition(_keras.layers.Layer):
         return result
 
 
-class _TransformerBlock(_keras.layers.Layer):
+class TransformerBlock(_keras.layers.Layer):
     """
     A pseudo-layer combining together all nuts and bolts to assemble
     a complete section of both the Transformer and the Universal Transformer
@@ -336,23 +352,20 @@ class _TransformerBlock(_keras.layers.Layer):
 
     def __init__(
         self,
-        name: str,
+        # name: str,
         num_heads: int,
         use_masking: bool = True,
         **kwargs,
     ):
-        self.attention_layer = _MultiHeadSelfAttention(
+        self.attention_layer = MultiHeadSelfAttention(
             num_heads,
             use_masking=use_masking,
-            name=f'{name}_self_attention',
+            # name=f'{name}_self_attention',
         )
-        self.norm1_layer = _LayerNormalization(name=f'{name}_norm1')
-        self.norm2_layer = _LayerNormalization(name=f'{name}_norm2')
-        self.transition_layer = _TransformerTransition(
-            name=f'{name}_transition',
-            activation='relu',
-        )
-        self.addition_layer = _keras.layers.Add(name=f'{name}_add')
+        self.norm1_layer = CustomNormalization()
+        self.norm2_layer = CustomNormalization()
+        self.transition_layer = TransformerTransition(activation='relu', )
+        self.addition_layer = _keras.layers.Add()
         super().__init__(**kwargs)
 
     def call(self, x, **kwargs):
@@ -365,21 +378,19 @@ class _TransformerBlock(_keras.layers.Layer):
         return output
 
 
-def transformer_block(input_layer,share_weights, n_blocks, n_heads):
-    x=input_layer
-    tb=_TransformerBlock(
-            f'transformer_block',
-            n_heads,
-            True,
-        )
+def transformer_block(input_layer, share_weights, n_blocks, n_heads):
+    x = input_layer
+    tb = TransformerBlock(
+        num_heads=n_heads,
+        use_masking=True,
+    )
     for block in range(n_blocks):
         if share_weights:
-            x=tb(x)
+            x = tb(x)
         else:
-            x = _TransformerBlock(
-                f'transformer_block_{block}',
-                n_heads,
-                True,
+            x = TransformerBlock(
+                num_heads=n_heads,
+                use_masking=True,
             )(x)
 
     return x
@@ -389,13 +400,14 @@ def transformer_block(input_layer,share_weights, n_blocks, n_heads):
 def ffn_block(input_layer, dropout_rate):
     input_layer = _keras.layers.Flatten()(input_layer)
     input_layer = _keras.layers.Dense(
-        64,
+        units=64,
         activation='relu',
         kernel_regularizer='l2',
-        kernel_initializer='glorot_uniform')(input_layer)
+        kernel_initializer='glorot_uniform',
+    )(input_layer)
     input_layer = _keras.layers.Dropout(dropout_rate)(input_layer)
     out = _keras.layers.Dense(
-        3,
+        units=3,
         activation='softmax',
     )(input_layer)
     return out
