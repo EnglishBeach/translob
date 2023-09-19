@@ -20,15 +20,17 @@ def cnn_block(input_layer, filters=1, dilation_steps=0):
         2**dilation
         for dilation in range(dilation_steps + 1)
     ] # yapf: disable
+    x= input_layer
     for dilation in dilation_steps:
-        input_layer = _keras.layers.Conv1D(
+        layer= _keras.layers.Conv1D(
             filters=filters,
             kernel_size=2,
             dilation_rate=dilation,
             activation='relu',
             padding='causal',
-        )(input_layer)
-        return input_layer
+        )
+        x =layer(x)
+    return x
 
 
 # Normalisation

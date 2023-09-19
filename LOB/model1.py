@@ -7,12 +7,9 @@ from keras.preprocessing import timeseries_dataset_from_array
 from keras.callbacks import CSVLogger
 from sklearn.metrics import classification_report
 
-import sys
-sys.path.insert(0, "../..")
 from modules import blocks
 from modules import data
 from modules import utilites
-
 
 # Model parametrs
 class Input_pars(utilites.DataClass):
@@ -56,12 +53,13 @@ class Full_pars(utilites.DataClass):
 
 
 pars = Full_pars()
-
-(x_train, y_train), (x_val, y_val), (x_test, y_test) = data.load_dataset(
-    horizon=4)  # yapf:disabele
-
-
 # Dataset
+print('Reading...')
+((x_train, y_train), (x_val, y_val), (x_test, y_test)) =\
+data.load_dataset(horizon=4)
+
+
+
 ds_train = data.build_dataset(
     x=x_train,
     y=y_train,
@@ -84,6 +82,7 @@ ds_test = data.build_dataset(
 )
 
 # Model
+print('Building...')
 inputs = blocks.input_block(pars.seq_len)
 cnn = blocks.cnn_block(
     input_layer=inputs,
@@ -105,6 +104,9 @@ ffn = blocks.ffn_block(
     dropout_rate=pars.ff.dropout_rate,
 )
 end = ffn
+
+
+
 model = keras.Model(inputs=inputs, outputs=end)
 model.summary()
 print(
@@ -123,8 +125,8 @@ model.compile(
     ),
     loss=keras.losses.SparseCategoricalCrossentropy(),
     metrics=[
-        keras.metrics.CategoricalAccuracy(),
-        keras.metrics.SparseCategoricalAccuracy(),
+        keras.metrics.CategoricalAccuracy(name='accurancy'),
+        keras.metrics.SparseCategoricalAccuracy(name='sparce_accurancy'),
     ],
 )
 
@@ -133,7 +135,7 @@ model.fit(
     ds_train,
     epochs=pars.training.epochs,
     validation_data=ds_val,
-    callbacks=[
-        CSVLogger('log.csv', append=True, separator=';')
-    ]
+    # callbacks=[
+    #     CSVLogger('log.csv', append=True, separator=';')
+    # ]
 )
