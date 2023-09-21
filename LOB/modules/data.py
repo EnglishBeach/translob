@@ -41,6 +41,33 @@ def load_dataset(horizon):
     return result
 
 
+def load_saved_data():
+    """
+    kinds = 'test', 'train', 'val'
+    """
+    data = []
+    for kind in ['train', 'val', 'test']:
+        try:
+            with open(f'saved_data/x_{kind}.npy', 'rb') as file:
+                x = np.load(file)
+            with open(f'saved_data/y_{kind}.npy', 'rb') as file:
+                y = np.load(file)
+        except FileNotFoundError:
+            x, y = None, None
+        data.append((x, y))
+    return data
+
+
+def save_data(x, y, name):
+    """
+    kinds = 'test', 'train', 'val'
+    """
+    with open(f'saved_data/x_{name}.npy', 'wb') as file:
+        np.save(file, x)
+    with open(f'saved_data/y_{name}.npy', 'wb') as file:
+        np.save(file, y)
+
+
 def build_dataset(
     x: np.ndarray,
     y: np.ndarray,
