@@ -11,6 +11,7 @@ from modules import blocks
 from modules import data
 from modules import utilites
 
+
 # Model parametrs
 class Input_pars(utilites.DataClass):
     seq_len = 100
@@ -24,7 +25,7 @@ class CN_pars(utilites.DataClass):
 class AN_pars(utilites.DataClass):
     attention_heads = 3
     blocks = 2
-    share_weights = True
+    share_weights = False
 
 
 class FF_pars(utilites.DataClass):
@@ -39,8 +40,8 @@ class Optimaser_pars(utilites.DataClass):
 
 class Trainig_pars(utilites.DataClass):
     shuffle = True
-    batch_size = 512
-    epochs = 150
+    batch_size = 64
+    epochs = 10
 
 
 class Full_pars(utilites.DataClass):
@@ -53,33 +54,8 @@ class Full_pars(utilites.DataClass):
 
 
 pars = Full_pars()
-# Dataset
-print('Reading...')
-((x_train, y_train), (x_val, y_val), (x_test, y_test)) =\
-data.load_dataset(horizon=4)
+print(pars)
 
-
-
-ds_train = data.build_dataset(
-    x=x_train,
-    y=y_train,
-    batch_size=pars.training.batch_size,
-    seq_len=pars.seq_len,
-)
-
-ds_val = data.build_dataset(
-    x=x_val,
-    y=y_val,
-    batch_size=pars.training.batch_size,
-    seq_len=pars.seq_len,
-)
-
-ds_test = data.build_dataset(
-    x=x_test,
-    y=y_test,
-    batch_size=pars.training.batch_size,
-    seq_len=pars.seq_len,
-)
 
 # Model
 print('Building...')
@@ -97,7 +73,7 @@ transformer = blocks.transformer_block(
     input_layer=pos,
     n_blocks=pars.an.blocks,
     n_heads=pars.an.attention_heads,
-    share_weights=True,
+    share_weights=pars.an.share_weights,
 )
 ffn = blocks.ffn_block(
     input_layer=transformer,
@@ -105,15 +81,43 @@ ffn = blocks.ffn_block(
 )
 end = ffn
 
-
-
 model = keras.Model(inputs=inputs, outputs=end)
-model.summary()
+model.summary(
+    line_length=100,
+    expand_nested=True,
+)
+
+
+# Dataset
+print('Loading data...')
+((x_train, y_train), (x_val, y_val), (x_test, y_test)) =\
+data.load_dataset(horizon=4)
+
+ds_train = data.build_dataset(
+    x=x_train,
+    y=y_train,
+    batch_size=pars.training.batch_size,
+    seq_len=pars.seq_len,
+)
+ds_val = data.build_dataset(
+    x=x_val,
+    y=y_val,
+    batch_size=pars.training.batch_size,
+    seq_len=pars.seq_len,
+)
+ds_test = data.build_dataset(
+    x=x_test,
+    y=y_test,
+    batch_size=pars.training.batch_size,
+    seq_len=pars.seq_len,
+)
+
 print(
     f'Train x: {str(x_train.shape): <15} - y: {y_train.shape}',
     f'Val   x: {str(x_val.shape): <15} - y: {y_val.shape}',
     sep='\n',
 )
+
 
 # CompiLe
 model.compile(
@@ -130,12 +134,13 @@ model.compile(
     ],
 )
 
+
 # Train
 model.fit(
     ds_train,
     epochs=pars.training.epochs,
     validation_data=ds_val,
-    # callbacks=[
-    #     CSVLogger('log.csv', append=True, separator=';')
-    # ]
+    callbacks=[
+        CSVLogger(r'logs/model1/log.csv', append=True, separator=';')
+    ]
 )
