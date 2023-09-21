@@ -1,16 +1,19 @@
-import numpy as _np
+"""
+Realisation transformer from article
+"""
+import numpy as np
+import tensorflow as tf
+import keras
+
 from typing import Union as _Union
 from typing import Callable as _Callable
-
-import keras as _keras
-import tensorflow as _tf
 from keras.utils import get_custom_objects as _get_custom_objects
 from keras import backend as _K
 
 
 # Input
 def input_block(seq_len):
-    inputs = _keras.Input(shape=(seq_len, 40))
+    inputs = keras.Input(shape=(seq_len, 40))
     return inputs
 
 
@@ -22,7 +25,7 @@ def cnn_block(input_layer, filters=1, dilation_steps=0):
     ] # yapf: disable
     x = input_layer
     for dilation in dilation_steps:
-        layer = _keras.layers.Conv1D(
+        layer = keras.layers.Conv1D(
             filters=filters,
             kernel_size=2,
             dilation_rate=dilation,
@@ -36,19 +39,19 @@ def cnn_block(input_layer, filters=1, dilation_steps=0):
 # Normalisation
 def norm_block(input_layer):
 
-    norm = _keras.layers.LayerNormalization()(input_layer)
+    norm = keras.layers.LayerNormalization()(input_layer)
     return norm
 
 
 # Positional encoding
-class PositionalEncoding(_keras.layers.Layer):
+class PositionalEncoding(keras.layers.Layer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def call(self, x, *args, **kwargs):
         steps, d_model = x.get_shape()[-2:]
-        ps = _np.zeros([steps, 1], dtype=_K.floatx())
+        ps = np.zeros([steps, 1], dtype=_K.floatx())
         for step in range(steps):
             ps[step, :] = [(2 / (steps - 1)) * step - 1]
 
@@ -65,7 +68,7 @@ def positional_encoder_block(input_layer):
 
 
 # Transformer
-class MultiHeadSelfAttention(_keras.layers.Layer):
+class MultiHeadSelfAttention(keras.layers.Layer):
     """
     Base class for Multi-head Self-Attention layers.
     """
@@ -174,13 +177,13 @@ class MultiHeadSelfAttention(_keras.layers.Layer):
         q = _K.reshape(q, (-1, seq_len, d_submodel))
         k = _K.reshape(k, (-1, seq_len, d_submodel))
         v = _K.reshape(v, (-1, seq_len, d_submodel))
-        qk = _tf.einsum('aib,ajb->aij', q, k)
-        sqrt_d = _K.constant(_np.sqrt(d_model // self.num_heads),
+        qk = tf.einsum('aib,ajb->aij', q, k)
+        sqrt_d = _K.constant(np.sqrt(d_model // self.num_heads),
                              dtype=_K.floatx())
         a = qk / sqrt_d
         a = self.mask_attention(a)
         a = _K.softmax(a)
-        attention_heads = _tf.einsum('aij,ajb->aib', a, v)
+        attention_heads = tf.einsum('aij,ajb->aib', a, v)
         attention_heads = _K.reshape(attention_heads,
                                      (-1, self.num_heads, seq_len, d_submodel))
         attention_heads = _K.permute_dimensions(attention_heads, [0, 2, 1, 3])
@@ -199,7 +202,7 @@ class MultiHeadSelfAttention(_keras.layers.Layer):
             return dot_product
         last_dims = _K.int_shape(dot_product)[-2:]
         low_triangle_ones = (
-            _np.tril(_np.ones(last_dims))
+            np.tril(np.ones(last_dims))
             # to ensure proper broadcasting
             .reshape((1, ) + last_dims))
         inverse_low_triangle = 1 - low_triangle_ones
@@ -215,7 +218,7 @@ _get_custom_objects().update({
 })
 
 
-class CustomNormalization(_keras.layers.Layer):
+class CustomNormalization(keras.layers.Layer):
     """
     Implementation of Layer Normalization (https://arxiv.org/abs/1607.06450).
     """
@@ -265,7 +268,7 @@ class CustomNormalization(_keras.layers.Layer):
         return result
 
 
-class TransformerTransition(_keras.layers.Layer):
+class TransformerTransition(keras.layers.Layer):
     """
     Transformer transition function. The same function is used both
     in classical in Universal Transformers.
@@ -284,13 +287,13 @@ class TransformerTransition(_keras.layers.Layer):
           more hidden units than the model itself.
         :param kwargs: Keras-specific layer arguments.
         """
-        self.activation = _keras.activations.get(activation)
+        self.activation = keras.activations.get(activation)
         self.size_multiplier = size_multiplier
         super().__init__(**kwargs)
 
     def get_config(self):
         config = super().get_config()
-        config['activation'] = _keras.activations.serialize(self.activation)
+        config['activation'] = keras.activations.serialize(self.activation)
         config['size_multiplier'] = self.size_multiplier
         return config
 
@@ -336,7 +339,7 @@ class TransformerTransition(_keras.layers.Layer):
         return result
 
 
-class TransformerBlock(_keras.layers.Layer):
+class TransformerLayer(keras.layers.Layer):
     """
     A pseudo-layer combining together all nuts and bolts to assemble
     a complete section of both the Transformer and the Universal Transformer
@@ -365,7 +368,7 @@ class TransformerBlock(_keras.layers.Layer):
         self.norm1_layer = CustomNormalization()
         self.norm2_layer = CustomNormalization()
         self.transition_layer = TransformerTransition(activation='relu', )
-        self.addition_layer = _keras.layers.Add()
+        self.addition_layer = keras.layers.Add()
         super().__init__(**kwargs)
 
     def call(self, x, **kwargs):
@@ -380,7 +383,7 @@ class TransformerBlock(_keras.layers.Layer):
 
 def transformer_block(input_layer, share_weights, n_blocks, n_heads):
     x = input_layer
-    tb = TransformerBlock(
+    tb = TransformerLayer(
         num_heads=n_heads,
         use_masking=True,
     )
@@ -388,7 +391,7 @@ def transformer_block(input_layer, share_weights, n_blocks, n_heads):
         if share_weights:
             x = tb(x)
         else:
-            x = TransformerBlock(
+            x = TransformerLayer(
                 num_heads=n_heads,
                 use_masking=True,
             )(x)
@@ -398,16 +401,76 @@ def transformer_block(input_layer, share_weights, n_blocks, n_heads):
 
 # FFN
 def ffn_block(input_layer, dropout_rate):
-    input_layer = _keras.layers.Flatten()(input_layer)
-    input_layer = _keras.layers.Dense(
+    input_layer = keras.layers.Flatten()(input_layer)
+    input_layer = keras.layers.Dense(
         units=64,
         activation='relu',
         kernel_regularizer='l2',
         kernel_initializer='glorot_uniform',
     )(input_layer)
-    input_layer = _keras.layers.Dropout(dropout_rate)(input_layer)
-    out = _keras.layers.Dense(
+    input_layer = keras.layers.Dropout(dropout_rate)(input_layer)
+    out = keras.layers.Dense(
         units=3,
         activation='softmax',
     )(input_layer)
     return out
+
+
+# Collection
+class blocks:
+    input_block = input_block
+    cnn_block = cnn_block
+    norm_block = norm_block
+    positional_encoder_block = positional_encoder_block
+    transformer_block = transformer_block
+    ffn_block=ffn_block
+
+
+def build_model(
+    seq_len=100,
+    cn__n_filters=14,
+    cn__dilation_steps=4,
+    an__blocks=2,
+    an__attention_heads=3,
+    an__share_weights=False,
+    ff__dropout_rate=0.1,
+    optimizer=keras.optimizers.Adam(
+        learning_rate=0.0001,
+        beta_1=0.9,
+        beta_2=0.999,
+        name='Adam',
+    ),
+):
+    # Model
+    inputs = blocks.input_block(seq_len)
+    x = inputs
+    x = blocks.cnn_block(
+        input_layer=x,
+        filters=cn__n_filters,
+        dilation_steps=cn__dilation_steps,
+    )
+    x = blocks.norm_block(input_layer=x)
+    x = blocks.positional_encoder_block(input_layer=x)
+    x = blocks.transformer_block(
+        input_layer=x,
+        n_blocks=an__blocks,
+        n_heads=an__attention_heads,
+        share_weights=an__share_weights,
+    )
+    x = blocks.ffn_block(
+        input_layer=x,
+        dropout_rate=ff__dropout_rate,
+    )
+
+    model = keras.Model(inputs=inputs, outputs=x)
+
+    # Compile
+    model.compile(
+        optimizer,
+        loss=keras.losses.SparseCategoricalCrossentropy(),
+        metrics=[
+            keras.metrics.CategoricalAccuracy(name='accurancy'),
+            keras.metrics.SparseCategoricalAccuracy(name='sparce_accurancy'),
+        ],
+    )
+    return model
