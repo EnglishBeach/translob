@@ -1,3 +1,4 @@
+# FIXME: add graph repr
 class DataClass:
     """
     make only lover case parametrs and not start with _
@@ -9,6 +10,9 @@ class DataClass:
         target_dict: dict = None,
         name: str = '',
     ):
+        """
+        build from nested dict
+        """
         if target_dict is not None:
             result = DataClass()
             return result._rec_build_(name, target_dict)
@@ -74,7 +78,7 @@ class DataClass:
                 value,
                 margin + ' ' * 4,
             )
-            result += '\n' + margin + f'{key}: {inner_string}'
+            result += f'\n{margin}{key}: {inner_string}'
 
         if margin == '':
             return result[1:]
@@ -127,4 +131,14 @@ class DataClass:
                     yield inner_key
 
     def __getitem__(self, value):
-        return getattr(self, value, None)
+        if isinstance(value, list | tuple):
+            result = {}
+            for i in value:
+                result.update({i: getattr(self, i, None)})
+            return DataClass(result)
+
+        result = getattr(self, value, None)
+        if isinstance(result, DataClass):
+            return DataClass(result.Info_nested)
+        else:
+            return result
