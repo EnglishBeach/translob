@@ -1,8 +1,7 @@
-# DS store
 *_env
-.DS_Store
-**/__pycache__
 dataset
+**/__pycache__
 **/logs
+
 LOB/saved_data/**
-search
+**/callbacks
