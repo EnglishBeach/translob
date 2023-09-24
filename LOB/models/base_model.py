@@ -372,13 +372,16 @@ class TransformerLayer(keras.layers.Layer):
         super().__init__(**kwargs)
 
     def call(self, x, **kwargs):
-        output = self.attention_layer(x)
-        post_residual1 = (self.addition_layer([x, output]))
-        norm1_output = self.norm1_layer(post_residual1)
-        output = self.transition_layer(norm1_output)
-        post_residual2 = (self.addition_layer([norm1_output, output]))
-        output = self.norm2_layer(post_residual2)
-        return output
+        #PostLN: X -> attention -> +X -> norm1 -> transition -> +norm1 -> norm2
+        attention = self.attention_layer(x)
+        residual_1 = (self.addition_layer([x, attention]))
+        norm_1 = self.norm1_layer(residual_1)
+
+        transition = self.transition_layer(norm_1)
+        residual_2 = (self.addition_layer([norm_1, transition]))
+        norm_2 = self.norm2_layer(residual_2)
+
+        return norm_2
 
 
 def transformer_block(input_layer, share_weights, n_blocks, n_heads):
