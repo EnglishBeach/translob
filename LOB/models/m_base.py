@@ -18,7 +18,11 @@ def input_block(seq_len):
 
 
 # CN
-def cnn_block(input_layer, filters, dilation_steps):
+def cnn_block(
+    input_layer,
+    filters,
+    dilation_steps,
+):
     dilation_steps = [
         2**dilation
         for dilation in range(dilation_steps + 1)
@@ -384,7 +388,12 @@ class TransformerLayer(keras.layers.Layer):
         return norm_2
 
 
-def transformer_block(input_layer, share_weights, n_blocks, n_heads):
+def transformer_block(
+    input_layer,
+    share_weights,
+    n_blocks,
+    n_heads,
+):
     x = input_layer
     tb = TransformerLayer(
         num_heads=n_heads,
@@ -403,14 +412,23 @@ def transformer_block(input_layer, share_weights, n_blocks, n_heads):
 
 
 # FFN
-def ffn_block(input_layer, dropout_rate):
+def ffn_block(
+    input_layer,
+    dropout_rate,
+    activation,
+    units,
+    kernel_regularizer,
+    kernel_initializer,
+):
     input_layer = keras.layers.Flatten()(input_layer)
+
     input_layer = keras.layers.Dense(
-        units=64,
-        activation='relu',
-        kernel_regularizer='l2',
-        kernel_initializer='glorot_uniform',
+        units=units,
+        activation=activation,
+        kernel_regularizer=kernel_regularizer,
+        kernel_initializer=kernel_initializer,
     )(input_layer)
+
     input_layer = keras.layers.Dropout(dropout_rate)(input_layer)
     out = keras.layers.Dense(
         units=3,
@@ -426,7 +444,7 @@ class blocks:
     norm_block = norm_block
     positional_encoder_block = positional_encoder_block
     transformer_block = transformer_block
-    ffn_block=ffn_block
+    ffn_block = ffn_block
 
 
 def build_model(
@@ -436,12 +454,15 @@ def build_model(
     an__blocks=2,
     an__attention_heads=3,
     an__share_weights=False,
+    ff_units=64,
     ff__dropout_rate=0.1,
+    ff__activation=keras.activations.relu,
+    ff__kernel_regularizer=keras.regularizers.L2(),
+    ff__kernel_initializer='glorot_uniform',
     optimizer=keras.optimizers.Adam(
         learning_rate=0.0001,
         beta_1=0.9,
         beta_2=0.999,
-        name='Adam',
     ),
 ):
     # Model
@@ -462,7 +483,11 @@ def build_model(
     )
     x = blocks.ffn_block(
         input_layer=x,
+        units=ff_units,
         dropout_rate=ff__dropout_rate,
+        activation=ff__activation,
+        kernel_regularizer=ff__kernel_regularizer,
+        kernel_initializer=ff__kernel_initializer,
     )
 
     model = keras.Model(inputs=inputs, outputs=x)
@@ -472,8 +497,8 @@ def build_model(
         optimizer,
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[
-            keras.metrics.CategoricalAccuracy(name='accurancy'),
-            keras.metrics.SparseCategoricalAccuracy(name='sparce_accurancy'),
+            keras.metrics.CategoricalAccuracy(name='acc'),
+            keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
         ],
     )
     return model
