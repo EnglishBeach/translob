@@ -1,5 +1,5 @@
-import base_model
-from base_model import blocks, keras
+from . import m_base
+from .m_base import blocks, keras
 
 
 class TransformerLayer(keras.layers.Layer):
@@ -22,14 +22,14 @@ class TransformerLayer(keras.layers.Layer):
         use_masking: bool = True,
         **kwargs,
     ):
-        self.attention_layer = base_model.MultiHeadSelfAttention(
+        self.attention_layer = m_base.MultiHeadSelfAttention(
             num_heads,
             use_masking=use_masking,
             # name=f'{name}_self_attention',
         )
-        self.norm1_layer = base_model.CustomNormalization()
-        self.norm2_layer = base_model.CustomNormalization()
-        self.transition_layer = base_model.TransformerTransition(
+        self.norm1_layer = m_base.CustomNormalization()
+        self.norm2_layer = m_base.CustomNormalization()
+        self.transition_layer = m_base.TransformerTransition(
             activation='relu', )
         self.addition_layer = keras.layers.Add()
         super().__init__(**kwargs)
