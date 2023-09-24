@@ -18,7 +18,7 @@ def input_block(seq_len):
 
 
 # CN
-def cnn_block(input_layer, filters=1, dilation_steps=0):
+def cnn_block(input_layer, filters, dilation_steps):
     dilation_steps = [
         2**dilation
         for dilation in range(dilation_steps + 1)
