@@ -24,7 +24,7 @@ def save_data(x, y, name):
 def _gen_data(data, horizon):
     x = data[:40, :].T  # 40 == 10 price + volume asks + 10 price + volume bids
     y = data[-5 + horizon, :].T  # 5
-    return x[:-1], (y[1:] - 1).astype(np.int32)  # shift y by 1
+    return [x[:-1], (y[1:] - 1).astype(np.int32)]  # shift y by 1
 
 
 def load_datas(horizon):
@@ -66,7 +66,7 @@ def load_saved_datas():
                 y = np.load(file)
         except FileNotFoundError:
             x, y = None, None
-        datas.update({kind: (x, y)})
+        datas.update({kind: [x, y]})
     return datas
 
 
