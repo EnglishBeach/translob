@@ -11,8 +11,6 @@ from keras.utils import get_custom_objects as _get_custom_objects
 from keras import backend as _K
 
 
-
-# DataClass = utilites.DataClass
 # Input
 def input_block(seq_len):
     inputs = keras.Input(shape=(seq_len, 40))
@@ -524,8 +522,8 @@ def build_model(
         optimizer,
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[
-            keras.metrics.CategoricalAccuracy(name='acc'),
             keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
+            keras.metrics.CategoricalAccuracy(name='acc'),
         ],
     )
     return model

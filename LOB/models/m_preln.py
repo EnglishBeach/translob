@@ -67,20 +67,22 @@ def transformer_block(input_layer, share_weights, n_blocks, n_heads):
     return x
 
 
+PARAMETRS = m_base.PARAMETRS
+
+
 def build_model(
-    seq_len=100,
-    cn__n_filters=14,
-    cn__dilation_steps=4,
-    an__blocks=2,
-    an__attention_heads=3,
-    an__share_weights=False,
-    ff__dropout_rate=0.1,
-    optimizer=keras.optimizers.Adam(
-        learning_rate=0.0001,
-        beta_1=0.9,
-        beta_2=0.999,
-        name='Adam',
-    ),
+    seq_len,
+    cn__n_filters,
+    cn__dilation_steps,
+    an__blocks,
+    an__attention_heads,
+    an__share_weights,
+    ff__units,
+    ff__dropout_rate,
+    ff__activation,
+    ff__kernel_regularizer,
+    ff__kernel_initializer,
+    optimizer,
 ):
     # Model
     inputs = blocks.input_block(seq_len)
@@ -100,7 +102,11 @@ def build_model(
     )
     x = blocks.ffn_block(
         input_layer=x,
+        units=ff__units,
         dropout_rate=ff__dropout_rate,
+        activation=ff__activation,
+        kernel_regularizer=ff__kernel_regularizer,
+        kernel_initializer=ff__kernel_initializer,
     )
 
     model = keras.Model(inputs=inputs, outputs=x)
@@ -110,8 +116,8 @@ def build_model(
         optimizer,
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[
-            keras.metrics.CategoricalAccuracy(name='accurancy'),
-            keras.metrics.SparseCategoricalAccuracy(name='sparce_accurancy'),
+            keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
+            keras.metrics.CategoricalAccuracy(name='acc'),
         ],
     )
     return model
