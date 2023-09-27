@@ -15,28 +15,28 @@ class DataClass:
         """
         if target_dict is not None:
             result = DataClass()
-            return result._rec_build_(name, target_dict)
+            return result.__rec_build(name, target_dict)
         return super().__new__(cls)
 
-    def _rec_build_(self, self_name: str, target):
-        if not isinstance(target, dict):
-            self.__setattr__(self_name, target)
+    def __rec_build(self, field_name: str, field):
+        if not isinstance(field, dict):
+            self.__setattr__(field_name, field)
             return
 
         result = DataClass()
-        self.__setattr__(self_name, result)
+        self.__setattr__(field_name, result)
 
-        for name, inner_target in target.items():
-            inner_result = result._rec_build_(
-                name,
-                inner_target,
+        for inner_field_name, inner_field in field.items():
+            inner_result = result.__rec_build(
+                inner_field_name,
+                inner_field,
             )
             if inner_result is not None:
-                self.__setattr__(self_name, inner_result)
+                self.__setattr__(field_name, inner_result)
         return result
 
     @staticmethod
-    def _not_data(field=None, get=False, not_data_fields: set = set()):
+    def __not_data(field=None, get=False, not_data_fields: set = set()):
         if not get:
             not_data_fields.add(field.__name__)
             return field
@@ -50,13 +50,13 @@ class DataClass:
         for key, value in kwargs.items():
             self.__setattr__(key, value)
 
-    def _get_all_options(self):
+    def __get_all_fields(self):
         # Add except fields
 
         options = list(
             filter(
                 lambda x:
-                (x[0] != '_') and (x not in self._not_data(get=True)),
+                (x[0] != '_') and (x not in self.__not_data(get=True)),
                 self.__dir__(),
             ))
         return options
@@ -65,20 +65,20 @@ class DataClass:
         """
         Representation of options
         """
-        return DataClass._rec_print_(self.Info_nested)
+        return DataClass.__rec_print(self.Info_nested)
 
     @staticmethod
-    def _rec_print_(target, margin: str = ''):
-        if not isinstance(target, dict):
-            return f'{target}'
+    def __rec_print(field, margin: str = ''):
+        if not isinstance(field, dict):
+            return f'{field}'
         result = margin
 
-        for key, value in target.items():
-            inner_string = DataClass._rec_print_(
-                value,
+        for field_name, field in field.items():
+            inner_result = DataClass.__rec_print(
+                field,
                 margin + ' ' * 4,
             )
-            result += f'\n{margin}{key}: {inner_string}'
+            result += f'\n{margin}{field_name}: {inner_result}'
 
         if margin == '':
             return result[1:]
@@ -86,25 +86,25 @@ class DataClass:
             return result
 
     @property
-    @_not_data
+    @__not_data
     def Info_nested(self):
         """
         Containing options dict
         """
-        return self._rec_dict_()
+        return self.__rec_dict()
 
-    def _rec_dict_(self, self_name=None):
+    def __rec_dict(self, self_name=None):
         if not isinstance(self, DataClass):
             return {self_name: self}
 
         result = {}
-        for option in self._get_all_options():
+        for field_name in self.__get_all_fields():
 
-            inner_dict = DataClass._rec_dict_(
-                self.__getattribute__(option),
-                option,
+            inner_result = DataClass.__rec_dict(
+                self.__getattribute__(field_name),
+                field_name,
             )
-            result.update(inner_dict)
+            result.update(inner_result)
 
         if self_name is None:
             return result
@@ -112,23 +112,23 @@ class DataClass:
             return {self_name: result}
 
     @property
-    @_not_data
+    @__not_data
     def Info_expanded(self):
         return {
             compound_key.strip()[2:]: value
-            for value, compound_key in self._rec_grid_()
+            for value, compound_key in self.__rec_grid()
         }
 
-    def _rec_grid_(self, composite_key=''):
+    def __rec_grid(self, composite_key=''):
         if not isinstance(self, DataClass):
             yield (self, composite_key)
         else:
-            for key in self._get_all_options():
-                for inner_key in DataClass._rec_grid_(
-                        self.__getattribute__(key),
-                        str(composite_key) + '__' + str(key),
+            for field_name in self.__get_all_fields():
+                for inner_result in DataClass.__rec_grid(
+                        self.__getattribute__(field_name),
+                        str(composite_key) + '__' + str(field_name),
                 ):
-                    yield inner_key
+                    yield inner_result
 
     def __getitem__(self, value):
         if isinstance(value, list | tuple):

@@ -10,8 +10,7 @@ from typing import Callable as _Callable
 from keras.utils import get_custom_objects as _get_custom_objects
 from keras import backend as _K
 
-from .utilites import DataClass
-from ..test_pack import test
+
 
 # DataClass = utilites.DataClass
 # Input
@@ -451,34 +450,31 @@ class blocks:
 
 
 # parametrs
-class _CN_default(DataClass):
-    n_filters = 14
-    dilation_steps = 4  # dilation = 2**dilation_step
-
-
-class _AN_default(DataClass):
-    attention_heads = 3
-    blocks = 2
-    share_weights = False
-
-
-class _FF_default(DataClass):
-    dropout_rate = 0.1
-    activation = keras.activations.relu
-    kernel_regularizer = keras.regularizers.L2()
-    kernel_initializer = 'glorot_uniform'
-
-
-class Parametrs_default(DataClass):
-    seq_len = 100
-    cn = _CN_default()
-    an = _AN_default()
-    ff = _FF_default()
-    optimizer = keras.optimizers.legacy.Adam(
+PARAMETRS = {
+    'seq_len': 100,
+    'cn': dict(
+        n_filters=14,
+        dilation_steps=4,
+    ),
+    'an': dict(
+        attention_heads=3,
+        blocks=2,
+        share_weights=False,
+    ),
+    'ff': dict(
+        units = 64,
+        dropout_rate=0.1,
+        activation=keras.activations.relu,
+        kernel_regularizer=keras.regularizers.L2(),
+        kernel_initializer='glorot_uniform',
+    ),
+    'optimizer':
+    keras.optimizers.legacy.Adam(
         learning_rate=0.0001,
         beta_1=0.9,
         beta_2=0.999,
-    )
+    ),
+} #yapf:disable
 
 
 # build
@@ -489,7 +485,7 @@ def build_model(
     an__blocks,
     an__attention_heads,
     an__share_weights,
-    ff_units,
+    ff__units,
     ff__dropout_rate,
     ff__activation,
     ff__kernel_regularizer,
@@ -514,7 +510,7 @@ def build_model(
     )
     x = blocks.ffn_block(
         input_layer=x,
-        units=ff_units,
+        units=ff__units,
         dropout_rate=ff__dropout_rate,
         activation=ff__activation,
         kernel_regularizer=ff__kernel_regularizer,
