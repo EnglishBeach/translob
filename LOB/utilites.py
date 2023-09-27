@@ -5,6 +5,14 @@ class DataClass:
     All this methods (exept __call__) only for beauty representation :)
     """
 
+    @staticmethod
+    def __not_data(field=None, get=False, not_data_fields: set = set()):
+        if not get:
+            not_data_fields.add(field.__name__)
+            return field
+        else:
+            return not_data_fields
+
     def __new__(
         cls,
         target_dict: dict = None,
@@ -21,7 +29,7 @@ class DataClass:
     def __rec_build(self, field_name: str, field):
         if not isinstance(field, dict):
             self.__setattr__(field_name, field)
-            return
+            return None
 
         result = DataClass()
         self.__setattr__(field_name, result)
@@ -34,14 +42,6 @@ class DataClass:
             if inner_result is not None:
                 self.__setattr__(field_name, inner_result)
         return result
-
-    @staticmethod
-    def __not_data(field=None, get=False, not_data_fields: set = set()):
-        if not get:
-            not_data_fields.add(field.__name__)
-            return field
-        else:
-            return not_data_fields
 
     def __call__(self, **kwargs: dict):
         """
@@ -65,22 +65,21 @@ class DataClass:
         """
         Representation of options
         """
-        return DataClass.__rec_print(self.Info_nested)
+        return self.__rec_print()
 
-    @staticmethod
-    def __rec_print(field, margin: str = ''):
-        if not isinstance(field, dict):
-            return f'{field}'
-        result = margin
+    def __rec_print(self, self_margin: str = ''):
+        if not isinstance(self, DataClass):
+            return f'{self}'
 
-        for field_name, field in field.items():
+        result = self_margin
+        for field_name in self.__get_all_fields():
             inner_result = DataClass.__rec_print(
-                field,
-                margin + ' ' * 4,
+                self.__getattribute__(field_name),
+                self_margin + ' ' * 4,
             )
-            result += f'\n{margin}{field_name}: {inner_result}'
+            result += f'\n{self_margin}{field_name}: {inner_result}'
 
-        if margin == '':
+        if self_margin == '':
             return result[1:]
         else:
             return result
@@ -99,7 +98,6 @@ class DataClass:
 
         result = {}
         for field_name in self.__get_all_fields():
-
             inner_result = DataClass.__rec_dict(
                 self.__getattribute__(field_name),
                 field_name,
