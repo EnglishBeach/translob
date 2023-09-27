@@ -1,5 +1,6 @@
+import keras
 from . import m_base
-from .m_base import blocks, keras
+from .m_base import blocks
 
 
 class TransformerLayer(keras.layers.Layer):
