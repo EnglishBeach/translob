@@ -4,5 +4,6 @@ dataset
 **/logs
 
 LOB/saved_data/**
-**/callbacks
+LOB/Temp/**
+LOB/Save/**
 recs

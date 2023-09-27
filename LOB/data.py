@@ -53,7 +53,7 @@ def load_datas(horizon):
     return datas
 
 
-def load_saved_datas():
+def load_saved_datas(max_number=None):
     """
     kinds = 'test', 'train', 'val'
     """
@@ -64,8 +64,12 @@ def load_saved_datas():
                 x = np.load(file)
             with open(f'saved_data/y_{kind}.npy', 'rb') as file:
                 y = np.load(file)
+            if max_number is not None:
+                x = x[:max_number]
+                y = y[:max_number]
         except FileNotFoundError:
             x, y = None, None
+
         datas.update({kind: [x, y]})
     return datas
 
