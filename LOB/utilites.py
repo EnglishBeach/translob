@@ -1,4 +1,3 @@
-# FIXME: add graph repr
 class DataClass:
     """
     make only lover case parametrs and not start with _
@@ -65,15 +64,15 @@ class DataClass:
         """
         Representation of options
         """
-        return self.__rec_print()
+        return self.__rec_print()[4:]
 
-    def __rec_print(self, self_margin: str = ''):
+    def _rec_print_depr(self, self_margin: str = ''):
         if not isinstance(self, DataClass):
             return f'{self}'
 
         result = self_margin
         for field_name in self.__get_all_fields():
-            inner_result = DataClass.__rec_print(
+            inner_result = DataClass._rec_print_depr(
                 self.__getattribute__(field_name),
                 self_margin + ' ' * 4,
             )
@@ -84,21 +83,51 @@ class DataClass:
         else:
             return result
 
+    def __rec_print(
+        self,
+        self_name: str = '',
+        self_header: str = '',
+        last=True,
+    ):
+        end = "└──"
+        pipe = "│  "
+        tee = "├──"
+        blank = "   "
+        result = f'{self_header}{end if last else tee}{self_name}\n'
+
+        if not isinstance(self, DataClass):
+            if '<' in repr(self):
+                self = repr(self).split('at')[0].replace('<', '').strip()
+
+            return f'{self_header}{end if last else tee}{self_name}: {self}\n'
+
+        fields = self.__get_all_fields()
+        for field_name in fields:
+            inner_result = DataClass.__rec_print(
+                self.__getattribute__(field_name),
+                self_name=field_name,
+                self_header=f'{self_header}{blank if last else pipe}',
+                last=field_name == fields[-1])
+
+            result += inner_result[6:]
+
+        return result
+
     @property
     @__not_data
     def Info_nested(self):
         """
         Containing options dict
         """
-        return self.__rec_dict()
+        return self.__rec_nested()
 
-    def __rec_dict(self, self_name=None):
+    def __rec_nested(self, self_name=None):
         if not isinstance(self, DataClass):
             return {self_name: self}
 
         result = {}
         for field_name in self.__get_all_fields():
-            inner_result = DataClass.__rec_dict(
+            inner_result = DataClass.__rec_nested(
                 self.__getattribute__(field_name),
                 field_name,
             )
@@ -114,15 +143,15 @@ class DataClass:
     def Info_expanded(self):
         return {
             compound_key.strip()[2:]: value
-            for value, compound_key in self.__rec_grid()
+            for value, compound_key in self.__rec_expanded()
         }
 
-    def __rec_grid(self, composite_key=''):
+    def __rec_expanded(self, composite_key=''):
         if not isinstance(self, DataClass):
             yield (self, composite_key)
         else:
             for field_name in self.__get_all_fields():
-                for inner_result in DataClass.__rec_grid(
+                for inner_result in DataClass.__rec_expanded(
                         self.__getattribute__(field_name),
                         str(composite_key) + '__' + str(field_name),
                 ):
