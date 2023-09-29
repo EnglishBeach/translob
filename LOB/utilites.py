@@ -89,9 +89,9 @@ class DataClass:
         self_header: str = '',
         last=True,
     ):
-        end = "└──"
+        end = "└─ "
         pipe = "│  "
-        tee = "├──"
+        tee = "├─ "
         blank = "   "
         result = f'{self_header}{end if last else tee}{self_name}\n'
 
