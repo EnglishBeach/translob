@@ -12,16 +12,16 @@ seq_len = 100
 
 model_name = ''
 while model_name == '':
-    model_name = input('Search name')
+    model_name = input('Search name: ')
 model_name
 
 # Datasets
-if input('Quck training? (y-yes)') == 'y':
+if input('Quck training? (y-yes): ') == 'y':
     data_len = 2000
 else:
     data_len = None
 
-row_data = data.load_saved_datas(data_len)
+row_data = data.load_saved_datas(max_number=data_len)
 # row_data = data.load_dataset(horizon=4)
 
 data.inspect_datas(row_data)
