@@ -117,7 +117,7 @@ def build_model(
         loss=keras.losses.SparseCategoricalCrossentropy(),
         metrics=[
             keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
-            keras.metrics.CategoricalAccuracy(name='acc'),
+            # keras.metrics.CategoricalAccuracy(name='acc'),
         ],
     )
     return model
