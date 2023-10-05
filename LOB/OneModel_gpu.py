@@ -1,15 +1,15 @@
-import tensorflow as tf
-import numpy as np
-from tqdm import tqdm
+# import tensorflow as tf
+# import numpy as np
+# from tqdm import tqdm
 import keras
 import datetime
 
-import data
-from utilites import DataClass
+from utilities import data,dataclass
+
 
 seq_len = 100
 
-# Load data
+## Load data
 if input('Quck training? (y-yes): ')=='y':
     data_len=2000
 else:
@@ -28,27 +28,22 @@ datasets = data.build_datasets(
 (datasets['train'], datasets['val'], datasets['test'])
 data.inspect_datasets(datasets)
 
-# # Save data
-# data.save_data(name= 'train',x= x_train,y=y_train)
-# data.save_data(name= 'val',x= x_val,y=y_val)
-# data.save_data(name= 'test',x= x_test,y=y_test)
-
-keras.optimizers.legacy.adam.Adam()
 
 from models import m_base as test_model
 
-# Build
+## Build
 model_name=''
 while model_name=='':
-    model_name = input('Search name: ')
+    model_name = input('Training name: ')
 
-pars = DataClass(test_model.PARAMETRS)
+pars = dataclass.DataClass(test_model.PARAMETRS)
 model = test_model.build_model(**pars.Info_expanded)
 print(model_name)
 model.summary()
 
 # Callbacks
-log_dir = f'Temp/callbacks/{model_name}({datetime.datetime.now().strftime("%H-%M-%S--%d.%m")})'
+name_tag = datetime.datetime.now().strftime("%H-%M-%S--%d.%m")
+log_dir = f'Temp/callbacks/{model_name}({name_tag})'
 callbacks = [
     keras.callbacks.TensorBoard(
         log_dir=log_dir,
@@ -69,7 +64,7 @@ callbacks = [
 ]
 print(callbacks, log_dir, sep='\n')
 
-# Train
+## Train
 if input('Start training now? (y-yes): ')=='y':
     model.fit(
         ds_train,
