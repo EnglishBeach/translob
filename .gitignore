@@ -4,6 +4,6 @@ dataset
 **/logs
 
 LOB/saved_data/**
-LOB/Temp/**
+**/Temp
 LOB/Save/**
 recs
