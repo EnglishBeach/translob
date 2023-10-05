@@ -1,7 +1,9 @@
+import datetime
 import keras
 import tensorflow as tf
-import datetime
-from utilities import data, dataclass
+
+
+from tools import data, utils
 
 seq_len = 100
 
@@ -29,17 +31,17 @@ model_name = ''
 while model_name == '':
     model_name = input('Training name: ')
 
-pars = dataclass.DataClass(test_model.PARAMETRS)
+pars = utils.DataClass(test_model.PARAMETRS)
 model = test_model.build_model(**pars.Info_expanded)
 print(model_name)
 model.summary()
 
 ## Callbacks
-callback_freq = 100
+callback_freq = 'epoch'
 name_tag = datetime.datetime.now().strftime("%H-%M-%S--%d.%m")
 log_dir = f'Temp/callbacks/{model_name}({name_tag})'
 callbacks = [
-    keras.callbacks.TensorBoard(
+    tf.keras.callbacks.TensorBoard(
         log_dir=log_dir,
         histogram_freq=1,
         update_freq=callback_freq,

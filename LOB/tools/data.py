@@ -1,6 +1,6 @@
 import numpy as np
-from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
+from . import utils
 # download FI2010 dataset from
 # https://etsin.fairdata.fi/dataset/73eb48d7-4dbc-4a10-a52a-da745b47a649
 
@@ -76,44 +76,14 @@ def load_saved_datas(max_number=None):
     return datas
 
 
-def inspect_data(data, name='data'):
-    if data is not None:
-        x = data[0]
-        y = data[1]
-        print(f'{name: <10}: x= {str(x.shape): <15} | y= {str(y.shape): <15}')
-    else:
-        print(f'{name <10}: None')
-
-
 def inspect_datas(datas: dict):
     print('    Datas:')
     for name in datas:
         data = datas[name]
-        inspect_data(data, name)
+        utils.inspect_data(data, name)
 
 
 # build datasets
-def build_dataset(
-    x: np.ndarray,
-    y: np.ndarray,
-    seq_len,
-    batch_size=128,
-    **timeseries_kwargs,
-):
-
-    def set_shape(value_x, value_y):
-        value_x.set_shape((None, seq_len, x.shape[-1]))
-        return value_x, value_y
-
-    ds = _timeseries_dataset_from_array(
-        data=x,
-        targets=y,
-        batch_size=batch_size,
-        sequence_length=seq_len,
-        **timeseries_kwargs,
-    )
-
-    return ds.map(set_shape)
 
 
 def build_datasets(datas: dict, batch_size, seq_len):
@@ -122,7 +92,7 @@ def build_datasets(datas: dict, batch_size, seq_len):
         data = datas.get(kind, None)
         ds = None
         if data is not None:
-            ds = build_dataset(
+            ds = utils.build_dataset(
                 x=data[0],
                 y=data[1],
                 batch_size=batch_size,
@@ -133,18 +103,11 @@ def build_datasets(datas: dict, batch_size, seq_len):
     return datasets
 
 
-def inspect_dataset(ds, name='dataset'):
-    if ds is not None:
-        print(f'{name: <10}: {[len(ds)]+ list(ds.element_spec[0].shape)[1:]}')
-    else:
-        print(f'{name <10}: None')
-
-
 def inspect_datasets(datasets: dict):
     print('    Datasets:')
     for name in datasets:
         ds = datasets[name]
-        inspect_dataset(ds, name)
+        utils.inspect_dataset(ds, name)
 
 
 if __name__ == '__main__':

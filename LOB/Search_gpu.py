@@ -3,8 +3,8 @@ import keras
 import keras_tuner
 import tensorflow as tf
 
-from utilities import data
-from utilities.dataclass import DataClass
+from tools import data
+from tools.utils import DataClass
 
 seq_len = 100
 
@@ -140,9 +140,9 @@ tuner = keras_tuner.GridSearch(
 )
 
 ## Train
-training_question=''
-while training_question not in ['y','n']:
-    training_question=input('Start training now? (y-yes) (n-exit): ')
+training_question = ''
+while training_question not in ['y', 'n']:
+    training_question = input('Start training now? (y-yes) (n-exit): ')
 if training_question == 'y':
     tuner.search(
         ds_train,
