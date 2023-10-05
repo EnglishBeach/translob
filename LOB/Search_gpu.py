@@ -1,29 +1,18 @@
-import tensorflow as tf
 import datetime
-import numpy as np
-from tqdm import tqdm
 import keras
 import keras_tuner
+import tensorflow as tf
 
-import data
-from utilites import DataClass
+from utilities import data
+from utilities.dataclass import DataClass
 
 seq_len = 100
 
-model_name = ''
-while model_name == '':
-    model_name = input('Search name: ')
-model_name
-
-# Datasets
-if input('Quck training? (y-yes): ') == 'y':
-    data_len = 2000
-else:
-    data_len = None
-
-row_data = data.load_saved_datas(max_number=data_len)
+## Datasets
+data_len = int(input('How much data need? (press enter for all): '))
+if data_len == '': data_len = None
+row_data = data.load_saved_datas(data_len)
 # row_data = data.load_dataset(horizon=4)
-
 data.inspect_datas(row_data)
 
 datasets = data.build_datasets(
@@ -36,7 +25,7 @@ datasets = data.build_datasets(
 data.inspect_datasets(datasets)
 
 
-# Tuner parametrs
+## Tuner parametrs
 def configure(hp: keras_tuner.HyperParameters):
 
     class CN_search(DataClass):
@@ -100,63 +89,61 @@ def configure(hp: keras_tuner.HyperParameters):
     return Full_search()
 
 
-from models import m_base, m_preln
+## Build model
+from models import m_preln as test_model
 
 
-# Build model
-def search_base_model(hp):
+def search_model(hp):
     hyper_pars_data = configure(hp)
-    pars_data = DataClass(m_base.PARAMETRS)
+    pars_data = DataClass(test_model.PARAMETRS)
     pars = pars_data.Info_expanded
     pars.update(hyper_pars_data.Info_expanded)
 
-    model = m_base.build_model(**pars)
+    model = test_model.build_model(**pars)
     return model
 
 
-def search_m_preln(hp):
-    hyper_pars_data = configure(hp)
-    pars_data = DataClass(m_preln.PARAMETRS)
-    pars = pars_data.Info_expanded
-    pars.update(hyper_pars_data.Info_expanded)
+search_name = ''
+while search_name == '':
+    search_name = input('Search name: ')
+search_name
 
-    model = m_preln.build_model(**pars)
-    return model
-
-
-# Callbacks
-log_dir = f'Temp/callbacks/{model_name}({datetime.datetime.now().strftime("%H-%M-%S--%d.%m")})'
+##Callbacks
+name_tag = datetime.datetime.now().strftime("%H-%M-%S--%d.%m")
+log_dir = f'Temp/callbacks/search_{search_name}({name_tag})'
 callbacks = [
     keras.callbacks.TensorBoard(
         log_dir=log_dir,
         histogram_freq=1,
-        update_freq=1,
+        update_freq='epoch',
     ),
-    # tf.keras.callbacks.ModelCheckpoint(
-    #     f"{save_path}/checkPoints",
-    #     monitor="val_loss",
-    #     verbose=0,
-    #     save_best_only=False,
-    #     save_weights_only=True,
-    #     mode="auto",
-    #     save_freq=50,
-    #     options=None,
-    #     initial_value_threshold=None,
-    # )
+    tf.keras.callbacks.ModelCheckpoint(
+        f"{log_dir}/checkPoints",
+        monitor="val_loss",
+        verbose=0,
+        save_best_only=False,
+        save_weights_only=True,
+        mode="auto",
+        save_freq='epoch',
+        options=None,
+        initial_value_threshold=None,
+    )
 ]
 print(callbacks, log_dir, sep='\n')
 
-# Build tuner
+## Build tuner
 tuner = keras_tuner.GridSearch(
-    hypermodel=search_base_model,
+    hypermodel=search_model,
     objective="loss",
     executions_per_trial=1,
     directory=log_dir,
-    # project_name='parametrs',
 )
 
-# Train
-if input('Start training now? (y-yes)') == 'y':
+## Train
+training_question=''
+while training_question not in ['y','n']:
+    training_question=input('Start training now? (y-yes) (n-exit): ')
+if training_question == 'y':
     tuner.search(
         ds_train,
         validation_data=ds_val,

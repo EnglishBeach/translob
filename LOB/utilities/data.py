@@ -1,13 +1,15 @@
 import numpy as np
-from tensorflow.keras.utils  import timeseries_dataset_from_array as _timeseries_dataset_from_array
+from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
 # download FI2010 dataset from
 # https://etsin.fairdata.fi/dataset/73eb48d7-4dbc-4a10-a52a-da745b47a649
+
 _FI2010_DIR_ = r'D:\WORKS\translob\dataset\BenchmarkDatasets'
 _add_path_ = r'/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
 
 DATASET_PATH = _FI2010_DIR_ + _add_path_
-NUMPY_DATA_PATH =r'D:\WORKS\translob\LOB\saved_data'
+NUMPY_DATA_PATH = r'D:\WORKS\translob\LOB\saved_data'
+
 
 # Save
 def save_data(x, y, name):
@@ -144,6 +146,7 @@ def inspect_datasets(datasets: dict):
         ds = datasets[name]
         inspect_dataset(ds, name)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     a = load_saved_datas()
     print(a)
