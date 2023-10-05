@@ -2,7 +2,6 @@ import datetime
 import keras
 import tensorflow as tf
 
-
 from tools import data, utils
 
 seq_len = 100
@@ -24,9 +23,9 @@ datasets = data.build_datasets(
 (datasets['train'], datasets['val'], datasets['test'])
 data.inspect_datasets(datasets)
 
+## Build
 from models import m_base as test_model
 
-## Build
 model_name = ''
 while model_name == '':
     model_name = input('Training name: ')
@@ -69,5 +68,5 @@ if training_question == 'y':
         ds_train,
         epochs=20,
         validation_data=ds_val,
-        callbacks=callbacks,
+        # callbacks=callbacks,
     )

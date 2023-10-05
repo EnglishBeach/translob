@@ -1,24 +1,19 @@
 import numpy as np
 
 from . import utils
+
 # download FI2010 dataset from
 # https://etsin.fairdata.fi/dataset/73eb48d7-4dbc-4a10-a52a-da745b47a649
 
-_FI2010_DIR_ = r'D:\WORKS\translob\dataset\BenchmarkDatasets'
-_add_path_ = r'/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
-
-DATASET_PATH = _FI2010_DIR_ + _add_path_
-NUMPY_DATA_PATH = r'D:\WORKS\translob\LOB\saved_data'
-
 
 # Save
-def save_data(x, y, name):
+def save_data(x, y, name, path=r'./LOB/saved_data'):
     """
     kinds = 'test', 'train', 'val'
     """
-    with open(f'LOB/saved_data/x_{name}.npy', 'wb') as file:
+    with open(f'{path}/x_{name}.npy', 'wb') as file:
         np.save(file, x)
-    with open(f'LOB/saved_data/y_{name}.npy', 'wb') as file:
+    with open(f'{path}/y_{name}.npy', 'wb') as file:
         np.save(file, y)
 
 
@@ -29,21 +24,24 @@ def _gen_data(data, horizon):
     return [x[:-1], (y[1:] - 1).astype(np.int32)]  # shift y by 1
 
 
-def load_datas(horizon):
+def load_datas(
+    horizon,
+    path=r'./dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore',
+):
     dec_data = np.loadtxt(
-        f'{DATASET_PATH}_Training/Train_Dst_NoAuction_ZScore_CF_7.txt')
+        f'{path}_Training/Train_Dst_NoAuction_ZScore_CF_7.txt')
 
     dec_train = dec_data[:, :int(np.floor(dec_data.shape[1] * 0.8))]
     dec_val = dec_data[:, int(np.floor(dec_data.shape[1] * 0.8)):]
 
     dec_test1 = np.loadtxt(
-        f'{DATASET_PATH}_Testing/Test_Dst_NoAuction_ZScore_CF_7.txt')
+        f'{path}_Testing/Test_Dst_NoAuction_ZScore_CF_7.txt')
 
     dec_test2 = np.loadtxt(
-        f'{DATASET_PATH}_Testing/Test_Dst_NoAuction_ZScore_CF_8.txt')
+        f'{path}_Testing/Test_Dst_NoAuction_ZScore_CF_8.txt')
 
     dec_test3 = np.loadtxt(
-        f'{DATASET_PATH}_Testing/Test_Dst_NoAuction_ZScore_CF_9.txt')
+        f'{path}_Testing/Test_Dst_NoAuction_ZScore_CF_9.txt')
 
     dec_test = np.hstack((dec_test1, dec_test2, dec_test3))
 
@@ -55,16 +53,19 @@ def load_datas(horizon):
     return datas
 
 
-def load_saved_datas(max_number=None):
+def load_saved_datas(
+    max_number=None,
+    path=r'./LOB/saved_data',
+):
     """
     kinds = 'test', 'train', 'val'
     """
     datas = {}
     for kind in ['train', 'val', 'test']:
         try:
-            with open(f'{NUMPY_DATA_PATH}/x_{kind}.npy', 'rb') as file:
+            with open(f'{path}/x_{kind}.npy', 'rb') as file:
                 x = np.load(file)
-            with open(f'{NUMPY_DATA_PATH}/y_{kind}.npy', 'rb') as file:
+            with open(f'{path}/y_{kind}.npy', 'rb') as file:
                 y = np.load(file)
             if max_number is not None:
                 x = x[:max_number]
@@ -81,9 +82,6 @@ def inspect_datas(datas: dict):
     for name in datas:
         data = datas[name]
         utils.inspect_data(data, name)
-
-
-# build datasets
 
 
 def build_datasets(datas: dict, batch_size, seq_len):

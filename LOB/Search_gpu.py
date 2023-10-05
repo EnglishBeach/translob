@@ -9,8 +9,9 @@ from tools.utils import DataClass
 seq_len = 100
 
 ## Datasets
-data_len = int(input('How much data need? (press enter for all): '))
+data_len = input('How much data need? (press enter for all): ')
 if data_len == '': data_len = None
+else: data_len = int(data_len)
 row_data = data.load_saved_datas(data_len)
 # row_data = data.load_dataset(horizon=4)
 data.inspect_datas(row_data)
