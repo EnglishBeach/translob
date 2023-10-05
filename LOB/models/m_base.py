@@ -467,7 +467,7 @@ PARAMETRS = {
         kernel_initializer='glorot_uniform',
     ),
     'optimizer':
-    keras.optimizers.legacy.Adam(
+    keras.optimizers.legacy.adam.Adam(
         learning_rate=0.0001,
         beta_1=0.9,
         beta_2=0.999,

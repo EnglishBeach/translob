@@ -114,7 +114,7 @@ class DataClass:
         return result
 
     @property
-    @__not_data
+    @__not_data.__func__
     def Info_nested(self):
         """
         Containing options dict
@@ -139,7 +139,7 @@ class DataClass:
             return {self_name: result}
 
     @property
-    @__not_data
+    @__not_data.__func__
     def Info_expanded(self):
         return {
             compound_key.strip()[2:]: value
