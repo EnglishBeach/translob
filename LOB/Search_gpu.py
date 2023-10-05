@@ -90,7 +90,7 @@ def configure(hp: keras_tuner.HyperParameters):
 
 
 ## Build model
-from models import m_preln as test_model
+from models import m_base as test_model
 
 
 def search_model(hp):
