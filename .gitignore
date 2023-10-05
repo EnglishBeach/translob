@@ -1,9 +1,10 @@
-*_env
-dataset
 **/__pycache__
 **/logs
+*_env
+
+dataset
+
+Save/callbacks/**
+Temp/callbacks/**
 
 LOB/saved_data/**
-**/Temp
-LOB/Save/**
-recs
