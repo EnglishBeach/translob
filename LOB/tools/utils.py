@@ -1,6 +1,5 @@
 import numpy as _np
 import pandas as _pd
-from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
 
 class DataClass:
@@ -190,26 +189,3 @@ def inspect_dataset(ds: _pd.DataFrame, name='dataset'):
         print(f'{name: <10}: {[len(ds)]+ list(ds.element_spec[0].shape)[1:]}')
     else:
         print(f'{name <10}: None')
-
-
-def build_dataset(
-    x: _np.ndarray,
-    y: _np.ndarray,
-    seq_len,
-    batch_size=128,
-    **timeseries_kwargs,
-):
-
-    def set_shape(value_x, value_y):
-        value_x.set_shape((None, seq_len, x.shape[-1]))
-        return value_x, value_y
-
-    ds = _timeseries_dataset_from_array(
-        data=x,
-        targets=y,
-        batch_size=batch_size,
-        sequence_length=seq_len,
-        **timeseries_kwargs,
-    )
-
-    return ds.map(set_shape)
