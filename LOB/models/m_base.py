@@ -56,7 +56,7 @@ def norm_block(input_layer):
 
 
 # Positional encoding
-class PositionalEncoding(keras.layers.Layer):
+class PositionalEncoding(tf.keras.layers.Layer):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -74,13 +74,18 @@ class PositionalEncoding(keras.layers.Layer):
         return x
 
 
+_get_custom_objects().update({
+    'PositionalEncoding': PositionalEncoding,
+})
+
+
 def positional_encoder_block(input_layer):
     pos = PositionalEncoding()(input_layer)
     return pos
 
 
 # Transformer
-class MultiHeadSelfAttention(keras.layers.Layer):
+class MultiHeadSelfAttention(tf.keras.layers.Layer):
     """
     Base class for Multi-head Self-Attention layers.
     """
@@ -230,7 +235,7 @@ _get_custom_objects().update({
 })
 
 
-class CustomNormalization(keras.layers.Layer):
+class CustomNormalization(tf.keras.layers.Layer):
     """
     Implementation of Layer Normalization (https://arxiv.org/abs/1607.06450).
     """
@@ -280,7 +285,12 @@ class CustomNormalization(keras.layers.Layer):
         return result
 
 
-class TransformerTransition(keras.layers.Layer):
+_get_custom_objects().update({
+    'CustomNormalization': CustomNormalization,
+})
+
+
+class TransformerTransition(tf.keras.layers.Layer):
     """
     Transformer transition function. The same function is used both
     in classical in Universal Transformers.
@@ -351,7 +361,12 @@ class TransformerTransition(keras.layers.Layer):
         return result
 
 
-class TransformerLayer(keras.layers.Layer):
+_get_custom_objects().update({
+    'TransformerTransition': TransformerTransition,
+})
+
+
+class TransformerLayer(tf.keras.layers.Layer):
     """
     A pseudo-layer combining together all nuts and bolts to assemble
     a complete section of both the Transformer and the Universal Transformer
@@ -372,6 +387,8 @@ class TransformerLayer(keras.layers.Layer):
         use_masking: bool = True,
         **kwargs,
     ):
+        self.num_heads = num_heads
+        self.use_masking = use_masking
         self.attention_layer = MultiHeadSelfAttention(
             num_heads,
             use_masking=use_masking,
@@ -382,6 +399,14 @@ class TransformerLayer(keras.layers.Layer):
         self.transition_layer = TransformerTransition(activation='relu', )
         self.addition_layer = keras.layers.Add()
         super().__init__(**kwargs)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "num_heads": self.num_heads,
+            "use_masking": self.use_masking,
+        })
+        return config
 
     def call(self, x, **kwargs):
         #PostLN: X -> attention -> +X -> norm1 -> transition -> +norm1 -> norm2
@@ -394,6 +419,11 @@ class TransformerLayer(keras.layers.Layer):
         norm_2 = self.norm2_layer(residual_2)
 
         return norm_2
+
+
+_get_custom_objects().update({
+    'TransformerLayer': TransformerLayer,
+})
 
 
 def transformer_block(

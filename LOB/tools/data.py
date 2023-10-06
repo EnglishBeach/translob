@@ -13,11 +13,11 @@ def check_using_jupyter():
     except NameError:
         using_jupyter=False
 
-    global prefix,save_path,dataset_path
+    global prefix,save_path,dataset_path,callback_path
     prefix = '..' if using_jupyter else '.'
     save_path = prefix + r'/LOB/saved_data'
     dataset_path = prefix + r'/dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
-
+    callback_path =prefix + f'/Temp/callbacks'
 
 check_using_jupyter()
 
