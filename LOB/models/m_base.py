@@ -23,11 +23,19 @@ def cnn_block(
     filters,
     dilation_steps,
 ):
+    x = input_layer
+    x = keras.layers.Conv1D(
+        14,
+        kernel_size=2,
+        strides=1,
+        activation='relu',
+        padding='causal',
+    )(x)
+
     dilation_steps = [
         2**dilation
-        for dilation in range(dilation_steps + 1)
+        for dilation in range(1,dilation_steps + 1)
     ] # yapf: disable
-    x = input_layer
     for dilation in dilation_steps:
         layer = keras.layers.Conv1D(
             filters=filters,
