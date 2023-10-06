@@ -1,4 +1,4 @@
-# %%
+# # %%
 # %tensorboard
 
 # # %%
@@ -18,7 +18,7 @@ import tensorflow as tf
 import keras
 from tools import data, utils
 
-data.use_jupyter(False)
+data.check_using_jupyter()
 seq_len = 100
 
 # %%
@@ -27,7 +27,7 @@ seq_len = 100
 
 # %%
 ## Load data
-part = input('Data dole %? (press enter for all): ')
+part = input('Data proportion 100-0 in % (press enter for all): ')
 if part == '': part = 1
 else: part = float(part) / 100
 
@@ -46,45 +46,59 @@ data.inspect_datasets(datasets)
 
 # %%
 ## Build
-from models import m_base as test_model
+restore = True if input('Restore? (y-yes, enter-no): ') == 'y' else False
+input_name = ''
+date_tag = f'({datetime.datetime.now().strftime("%H-%M-%S--%d.%m")})'
+while input_name == '':
+    input_name = input(
+        f"Input model name to {'restore' if restore else 'build new'}: ")
 
-model_name = ''
-while model_name == '':
-    model_name = input('Training name: ')
+if restore:
+    restore_path = data.prefix + f'/Temp/callbacks/{input_name}/checkPoints'
+    model = tf.keras.models.load_model(restore_path)
+else:
+    from models import m_base as test_model
 
-pars = utils.DataClass(test_model.PARAMETRS)
-model = test_model.build_model(**pars.Info_expanded)
-print(model_name)
+    pars = utils.DataClass(test_model.PARAMETRS)
+    model = test_model.build_model(**pars.Info_expanded)
+
+model_name = f"{input_name}{'R' if restore else ''}{date_tag}"
+print(f'Model name:{model_name}')
 model.summary()
 
 # %%
 ## Callbacks
 callback_freq = 'epoch'
-name_tag = datetime.datetime.now().strftime("%H-%M-%S--%d.%m")
-log_dir = data.prefix+f'/Temp/callbacks/{model_name}({name_tag})'
+model_dir = data.prefix + f'/Temp/callbacks/{model_name}'
 callbacks = [
     tf.keras.callbacks.TensorBoard(
-        log_dir=log_dir,
+        log_dir=model_dir,
         histogram_freq=1,
         update_freq=callback_freq,
     ),
     tf.keras.callbacks.ModelCheckpoint(
-        f"{log_dir}/checkPoints",
+        f"{model_dir}/checkpoint.tf",
         monitor="val_sp_acc",
         verbose=0,
         save_best_only=False,
-        save_weights_only=True,
+        save_weights_only=False,
         mode="auto",
         save_freq=callback_freq,
     )
 ]
-print(callbacks, log_dir, sep='\n')
+
+print(
+    f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
+    f'Model directory: {model_dir}',
+    sep='\n',
+)
+
 
 # %%
 ## Train
 training_question = ''
 while training_question not in ['y', 'n']:
-    training_question = input('Start training now? (y-yes) (n-exit): ')
+    training_question = input(f'Start training now model:\n {model_name}\n(y-yes) (n-exit): ')
 if training_question == 'y':
     model.fit(
         ds_train,

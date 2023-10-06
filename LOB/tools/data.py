@@ -6,14 +6,20 @@ from .utils import inspect_data, inspect_dataset
 # https://etsin.fairdata.fi/dataset/73eb48d7-4dbc-4a10-a52a-da745b47a649
 
 # Paths
-def use_jupyter(jupyter):
+def check_using_jupyter():
+    try:
+        get_ipython().__class__.__name__
+        using_jupyter=True
+    except NameError:
+        using_jupyter=False
+
     global prefix,save_path,dataset_path
-    prefix = '..' if jupyter else '.'
+    prefix = '..' if using_jupyter else '.'
     save_path = prefix + r'/LOB/saved_data'
     dataset_path = prefix + r'/dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
 
 
-use_jupyter(False)
+check_using_jupyter()
 
 
 # Save
