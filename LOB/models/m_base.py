@@ -3,17 +3,21 @@ Realisation transformer from article
 """
 import numpy as np
 import tensorflow as tf
-import keras
+from tensorflow.keras.utils import get_custom_objects as _get_custom_objects
+from tensorflow.keras import backend as _K
 
 from typing import Union as _Union
 from typing import Callable as _Callable
-from keras.utils import get_custom_objects as _get_custom_objects
-from keras import backend as _K
+
+import keras
+
+keras
+tf.keras
 
 
 # Input
 def input_block(seq_len):
-    inputs = keras.Input(shape=(seq_len, 40))
+    inputs = tf.keras.Input(shape=(seq_len, 40))
     return inputs
 
 
@@ -24,7 +28,7 @@ def cnn_block(
     dilation_steps,
 ):
     x = input_layer
-    x = keras.layers.Conv1D(
+    x = tf.keras.layers.Conv1D(
         14,
         kernel_size=2,
         strides=1,
@@ -37,7 +41,7 @@ def cnn_block(
         for dilation in range(1,dilation_steps + 1)
     ] # yapf: disable
     for dilation in dilation_steps:
-        layer = keras.layers.Conv1D(
+        layer = tf.keras.layers.Conv1D(
             filters=filters,
             kernel_size=2,
             dilation_rate=dilation,
@@ -51,7 +55,7 @@ def cnn_block(
 # Normalisation
 def norm_block(input_layer):
 
-    norm = keras.layers.LayerNormalization()(input_layer)
+    norm = tf.keras.layers.LayerNormalization()(input_layer)
     return norm
 
 
@@ -95,7 +99,7 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         :param num_heads: number of attention heads
         :param use_masking: when True, forbids the attention to see the further
           elements in the sequence.
-        :param kwargs: any extra arguments typical for a Keras layer,
+        :param kwargs: any extra arguments typical for a tf.Keras layer,
           such as name, etc.
         """
         self.num_heads = num_heads
@@ -124,7 +128,7 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         return super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        # if not K.is_keras_tensor(inputs):
+        # if not K.is_tf.keras_tensor(inputs):
         #     raise ValueError(
         #         'The layer can be called only with one tensor as an argument')
         _, seq_len, d_model = _K.int_shape(inputs)
@@ -180,7 +184,7 @@ class MultiHeadSelfAttention(tf.keras.layers.Layer):
         :param pre_k: (batch_size, k_seq_len, num_heads, d_model // num_heads)
         :param seq_len: the length of the output sequence
         :param d_model: dimensionality of the model (by the paper)
-        :param training: Passed by Keras. Should not be defined manually.
+        :param training: Passed by tf.Keras. Should not be defined manually.
           Optional scalar tensor indicating if we're in training
           or inference phase.
         """
@@ -307,15 +311,15 @@ class TransformerTransition(tf.keras.layers.Layer):
         :param size_multiplier: How big the hidden dimension should be.
           Most of the implementation use transition functions having 4 times
           more hidden units than the model itself.
-        :param kwargs: Keras-specific layer arguments.
+        :param kwargs: tf.Keras-specific layer arguments.
         """
-        self.activation = keras.activations.get(activation)
+        self.activation = tf.keras.activations.get(activation)
         self.size_multiplier = size_multiplier
         super().__init__(**kwargs)
 
     def get_config(self):
         config = super().get_config()
-        config['activation'] = keras.activations.serialize(self.activation)
+        config['activation'] = tf.keras.activations.serialize(self.activation)
         config['size_multiplier'] = self.size_multiplier
         return config
 
@@ -397,7 +401,7 @@ class TransformerLayer(tf.keras.layers.Layer):
         self.norm1_layer = CustomNormalization()
         self.norm2_layer = CustomNormalization()
         self.transition_layer = TransformerTransition(activation='relu', )
-        self.addition_layer = keras.layers.Add()
+        self.addition_layer = tf.keras.layers.Add()
         super().__init__(**kwargs)
 
     def get_config(self):
@@ -429,20 +433,20 @@ _get_custom_objects().update({
 def transformer_block(
     input_layer,
     share_weights,
-    n_blocks,
-    n_heads,
+    blocks,
+    heads,
 ):
     x = input_layer
     tb = TransformerLayer(
-        num_heads=n_heads,
+        num_heads=heads,
         use_masking=True,
     )
-    for block in range(n_blocks):
+    for block in range(blocks):
         if share_weights:
             x = tb(x)
         else:
             x = TransformerLayer(
-                num_heads=n_heads,
+                num_heads=heads,
                 use_masking=True,
             )(x)
 
@@ -457,55 +461,47 @@ def ffn_block(
     units,
     kernel_regularizer,
     kernel_initializer,
+    out_activation,
 ):
-    input_layer = keras.layers.Flatten()(input_layer)
+    input_layer = tf.keras.layers.Flatten()(input_layer)
 
-    input_layer = keras.layers.Dense(
+    input_layer = tf.keras.layers.Dense(
         units=units,
         activation=activation,
         kernel_regularizer=kernel_regularizer,
         kernel_initializer=kernel_initializer,
     )(input_layer)
 
-    input_layer = keras.layers.Dropout(dropout_rate)(input_layer)
-    out = keras.layers.Dense(
+    input_layer = tf.keras.layers.Dropout(dropout_rate)(input_layer)
+    out = tf.keras.layers.Dense(
         units=3,
-        activation='softmax',
+        activation=out_activation,
     )(input_layer)
     return out
-
-
-# Collection
-class blocks:
-    input_block = input_block
-    cnn_block = cnn_block
-    norm_block = norm_block
-    positional_encoder_block = positional_encoder_block
-    transformer_block = transformer_block
-    ffn_block = ffn_block
 
 
 # parametrs
 PARAMETRS = {
     'seq_len': 100,
-    'cn': dict(
-        n_filters=14,
+    'convolutional': dict(
+        filters=14,
         dilation_steps=4,
     ),
-    'an': dict(
-        attention_heads=3,
+    'transformer': dict(
+        heads=3,
         blocks=2,
         share_weights=False,
     ),
-    'ff': dict(
+    'feed_forward': dict(
         units = 64,
         dropout_rate=0.1,
-        activation=keras.activations.relu,
-        kernel_regularizer=keras.regularizers.L2(),
+        activation=tf.keras.activations.relu,
+        kernel_regularizer=tf.keras.regularizers.L2(),
         kernel_initializer='glorot_uniform',
+        out_activation='softmax',
     ),
     'optimizer':
-    keras.optimizers.legacy.adam.Adam(
+    tf.keras.optimizers.legacy.Adam(
         learning_rate=0.0001,
         beta_1=0.9,
         beta_2=0.999,
@@ -514,54 +510,34 @@ PARAMETRS = {
 
 
 # build
-def build_model(
-    seq_len,
-    cn__n_filters,
-    cn__dilation_steps,
-    an__blocks,
-    an__attention_heads,
-    an__share_weights,
-    ff__units,
-    ff__dropout_rate,
-    ff__activation,
-    ff__kernel_regularizer,
-    ff__kernel_initializer,
-    optimizer,
-):
-    # Model
-    inputs = blocks.input_block(seq_len)
-    x = inputs
-    x = blocks.cnn_block(
-        input_layer=x,
-        filters=cn__n_filters,
-        dilation_steps=cn__dilation_steps,
-    )
-    x = blocks.norm_block(input_layer=x)
-    x = blocks.positional_encoder_block(input_layer=x)
-    x = blocks.transformer_block(
-        input_layer=x,
-        n_blocks=an__blocks,
-        n_heads=an__attention_heads,
-        share_weights=an__share_weights,
-    )
-    x = blocks.ffn_block(
-        input_layer=x,
-        units=ff__units,
-        dropout_rate=ff__dropout_rate,
-        activation=ff__activation,
-        kernel_regularizer=ff__kernel_regularizer,
-        kernel_initializer=ff__kernel_initializer,
-    )
+class blocks:
+    input_block = input_block
+    cnn_block = cnn_block
+    norm_block = norm_block
+    positional_encoder_block = positional_encoder_block
+    transformer_block = transformer_block
+    ffn_block = ffn_block
 
-    model = keras.Model(inputs=inputs, outputs=x)
+    def build_model(seq_len, convolutional, transformer, feed_forward,
+                    optimizer):
+        # Model
+        inputs = blocks.input_block(seq_len)
+        x = inputs
+        x = blocks.cnn_block(input_layer=x, **convolutional)
+        x = blocks.norm_block(input_layer=x)
+        x = blocks.positional_encoder_block(input_layer=x)
+        x = blocks.transformer_block(input_layer=x, **transformer)
+        x = blocks.ffn_block(input_layer=x, **feed_forward)
 
-    # Compile
-    model.compile(
-        optimizer,
-        loss=keras.losses.SparseCategoricalCrossentropy(),
-        metrics=[
-            keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
-            keras.metrics.CategoricalAccuracy(name='acc'),
-        ],
-    )
-    return model
+        model = tf.keras.Model(inputs=inputs, outputs=x)
+
+        # Compile
+        model.compile(
+            optimizer,
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+            metrics=[
+                tf.keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
+                tf.keras.metrics.CategoricalAccuracy(name='acc'),
+            ],
+        )
+        return model

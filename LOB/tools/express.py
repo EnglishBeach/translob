@@ -1,23 +1,27 @@
+import os
 import numpy as _np
-from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
-from .utils import inspect_data, inspect_dataset
+import tensorflow as tf
+
+from .utils import inspect_data, inspect_dataset, build_dataset
 
 # download FI2010 dataset from
 # https://etsin.fairdata.fi/dataset/73eb48d7-4dbc-4a10-a52a-da745b47a649
+
 
 # Paths
 def check_using_jupyter():
     try:
         get_ipython().__class__.__name__
-        using_jupyter=True
+        using_jupyter = True
     except NameError:
-        using_jupyter=False
+        using_jupyter = False
 
-    global prefix,save_path,dataset_path,callback_path
+    global prefix, save_path, dataset_path, callback_path
     prefix = '..' if using_jupyter else '.'
     save_path = prefix + r'/LOB/saved_data'
     dataset_path = prefix + r'/dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
-    callback_path =prefix + f'/Temp/callbacks'
+    callback_path = prefix + f'/Temp/callbacks'
+
 
 check_using_jupyter()
 
@@ -77,13 +81,12 @@ def load_saved_datas(part=1):
                 x = _np.load(file)
             with open(f'{save_path}/y_{kind}.npy', 'rb') as file:
                 y = _np.load(file)
-            data_len = int(len(x)*part)
+            data_len = int(len(x) * part)
             x = x[:data_len]
             y = y[:data_len]
 
         except FileNotFoundError:
             x, y = None, None
-
 
         datas.update({kind: [x, y]})
     return datas
@@ -94,29 +97,6 @@ def inspect_datas(datas: dict):
     for name in datas:
         data = datas[name]
         inspect_data(data, name)
-
-
-def build_dataset(
-    x: _np.ndarray,
-    y: _np.ndarray,
-    seq_len,
-    batch_size=128,
-    **timeseries_kwargs,
-):
-
-    def set_shape(value_x, value_y):
-        value_x.set_shape((None, seq_len, x.shape[-1]))
-        return value_x, value_y
-
-    ds = _timeseries_dataset_from_array(
-        data=x,
-        targets=y,
-        batch_size=batch_size,
-        sequence_length=seq_len,
-        **timeseries_kwargs,
-    )
-
-    return ds.map(set_shape)
 
 
 def build_datasets(datas: dict, batch_size, seq_len):
@@ -143,6 +123,14 @@ def inspect_datasets(datasets: dict):
         inspect_dataset(ds, name)
 
 
-if __name__ == '__main__':
-    a = load_saved_datas()
-    print(a)
+def restore_model(input_name):
+    restore_path = f'{callback_path}/{input_name}/checkpoints'
+    checkpoint_list = sorted(os.listdir(restore_path))
+
+    model = tf.keras.models.load_model(f'{restore_path}/{checkpoint_list[-1]}')
+
+    print(f'Model {checkpoint_list[-1]} loaded')
+    restored_epoch = checkpoint_list[-1].split('.')[0]
+    restored_name = input_name.split('(')[0]
+
+    return model, f'restore_{restored_epoch}_{restored_name}'

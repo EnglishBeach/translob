@@ -1,6 +1,7 @@
 import numpy as _np
 import pandas as _pd
 
+from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
 class DataClass:
     """
@@ -15,6 +16,18 @@ class DataClass:
             return field
         else:
             return not_data_fields
+
+    def __init__(
+        self,
+        target_dict: dict = None,
+        name: str = '',
+    ):
+        for field_name in self.__get_all_fields():
+            field = getattr(self, field_name)
+            if type(self.__init__) == type(field):
+                # TODO: add signature
+                field_result = field.__func__
+                setattr(self, field_name, field_result)
 
     def __new__(
         cls,
@@ -119,7 +132,7 @@ class DataClass:
 
     @property
     @__not_data
-    def Info_nested(self):
+    def Data_nested(self):
         """
         Containing options dict
         """
@@ -167,13 +180,33 @@ class DataClass:
             for i in value:
                 result.update({i: getattr(self, i, None)})
             return DataClass(result)
-
         result = getattr(self, value, None)
         if isinstance(result, DataClass):
-            return DataClass(result.Info_nested)
+            return DataClass(result.Data_nested)
         else:
             return result
 
+def build_dataset(
+    x: _np.ndarray,
+    y: _np.ndarray,
+    seq_len,
+    batch_size=128,
+    **timeseries_kwargs,
+):
+
+    def set_shape(value_x, value_y):
+        value_x.set_shape((None, seq_len, x.shape[-1]))
+        return value_x, value_y
+
+    ds = _timeseries_dataset_from_array(
+        data=x,
+        targets=y,
+        batch_size=batch_size,
+        sequence_length=seq_len,
+        **timeseries_kwargs,
+    )
+
+    return ds.map(set_shape)
 
 def inspect_data(data, name='data'):
     if data is not None:
