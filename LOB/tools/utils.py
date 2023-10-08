@@ -157,7 +157,7 @@ class DataClass:
 
     @property
     @__not_data
-    def Info_expanded(self):
+    def Data_expanded(self):
         return {
             compound_key.strip()[2:]: value
             for value, compound_key in self.__rec_expanded()

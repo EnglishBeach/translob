@@ -42,7 +42,8 @@ datasets = express.build_datasets(
 express.inspect_datasets(datasets)
 
 # %%
-DataClass(test_model.PARAMETRS)
+DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
+DEFAULT_PARAMETRS
 
 # %%
 ## Tuner parametrs
@@ -77,53 +78,41 @@ DataClass(test_model.PARAMETRS)
 #     return Full_search()
 
 
-def configure(hp: keras_tuner.HyperParameters):
+def configure_parametrs(hp: keras_tuner.HyperParameters):
 
-    class convolutional_search(DataClass):
-        dilation_steps = 5
+    DEFAULT_PARAMETRS.convolutional.dilation_steps = 5
 
-    class transformer_search(DataClass):
-        share_weights = hp.Boolean(
-            'share_weights',
-            default=True,
-        )
+    DEFAULT_PARAMETRS.transformer.share_weights = hp.Boolean(
+        'share_weights',
+        default=True,
+    )
 
-    class feed_forward_search(DataClass):
-        activation = hp.Choice(name='activation',
-                               values=['relu', 'None'],
-                               default='relu')
-        kernel_regularizer = hp.Choice(
-            name='regularizer',
-            values=['l2', 'None'],
-            default='l2',
-        )
+    DEFAULT_PARAMETRS.feed_forward.activation = hp.Choice(
+        name='activation',
+        values=['relu', 'None'],
+        default='relu',
+    )
+    DEFAULT_PARAMETRS.feed_forward.kernel_regularizer = hp.Choice(
+        name='regularizer',
+        values=['l2', 'None'],
+        default='l2',
+    )
 
-    class Full_search(DataClass):
-        convolutional = convolutional_search()
-        transformer = transformer_search()
-        feed_forward = feed_forward_search()
-        optimizer = tf.keras.optimizers.legacy.Adam(
-            learning_rate=hp.Choice(
-                name='lr',
-                default=0.0001,
-                values=[0.01, 0.001, 0.0005, 0.0001],
-            ),
-            beta_1=0.9,
-            beta_2=0.999,
-        )
+    DEFAULT_PARAMETRS.optimizer = tf.keras.optimizers.legacy.Adam(
+        learning_rate=hp.Choice(name='lr',
+                                default=0.0001,
+                                values=[0.01, 0.001, 0.0005, 0.0001]),
+        beta_1=0.9,
+        beta_2=0.999,
+    )
 
-    return Full_search()
+    return DEFAULT_PARAMETRS
 
 # %%
 ## Build
 def search_model(hp):
-    hyper_pars_data = configure(hp)
-
-    default_parametrs = DataClass(test_model.PARAMETRS)
-    parametrs = default_parametrs.Info_expanded
-    parametrs.update(hyper_pars_data.Info_expanded)
-
-    model = test_model.build_model(**parametrs)
+    parametrs = configure_parametrs(hp)
+    model = test_model.blocks.build_model(**parametrs.Data_nested)
     return model
 
 
@@ -138,8 +127,6 @@ print(
     f'Search name: {search_name}',
     'Parametrs:',
     DataClass(test_model.PARAMETRS),
-    'Changed parametrs:',
-    configure(keras_tuner.HyperParameters()),
     sep='\n',
 )
 
