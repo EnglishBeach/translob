@@ -82,16 +82,8 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
 
     DEFAULT_PARAMETRS.convolutional.dilation_steps = 5
 
-    DEFAULT_PARAMETRS.transformer.share_weights = hp.Boolean(
-        'share_weights',
-        default=True,
-    )
+    DEFAULT_PARAMETRS.transformer.share_weights =False
 
-    DEFAULT_PARAMETRS.feed_forward.activation = hp.Choice(
-        name='activation',
-        values=['relu', 'None'],
-        default='relu',
-    )
     DEFAULT_PARAMETRS.feed_forward.kernel_regularizer = hp.Choice(
         name='regularizer',
         values=['l2', 'None'],
@@ -126,7 +118,7 @@ print(
     f'Pattern model: {test_model.__name__}',
     f'Search name: {search_name}',
     'Parametrs:',
-    DataClass(test_model.PARAMETRS),
+    configure_parametrs(keras_tuner.HyperParameters()),
     sep='\n',
 )
 
