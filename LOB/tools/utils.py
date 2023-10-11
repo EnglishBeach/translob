@@ -3,6 +3,7 @@ import pandas as _pd
 
 from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
+
 class DataClass:
     """
     make only lover case parametrs and not start with _
@@ -186,6 +187,7 @@ class DataClass:
         else:
             return result
 
+
 def build_dataset(
     x: _np.ndarray,
     y: _np.ndarray,
@@ -207,6 +209,7 @@ def build_dataset(
     )
 
     return ds.map(set_shape)
+
 
 def inspect_data(data, name='data'):
     if data is not None:
