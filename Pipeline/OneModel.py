@@ -1,14 +1,70 @@
 # %%
+## For platforms
+import os
+
+
+def get_platform():
+    platform = ''
+
+    # Windows
+    if os.name == 'nt':
+        try:
+            get_ipython().__class__.__name__
+            platform = 'jupyter'
+        except NameError:
+            platform = 'python'
+
+    elif os.name == 'posix':
+        # Kaggle
+        if 'KAGGLE_DATA_PROXY_TOKEN' in os.environ.keys():
+            platform = 'kaggle'
+
+    # Google Colab
+        else:
+            try:
+                from google.colab import drive
+                platform = 'colab'
+            except ModuleNotFoundError:
+                platform = None
+
+    print(f'Use: {platform}')
+    return platform
+
+
+def colab_action():
+    project_name = 'LOB'
+    from google.colab import drive
+    drive.mount('/content/drive/', force_remount=True)
+    os.chdir(f'/content/drive/My Drive/{project_name}/Pipeline')
+    os.system('pip install automodinit keras_tuner')
+    os.system(
+        f'nohup /usr/bin/python3 /content/drive/MyDrive/{project_name}/Pipeline/Colab_saver.py'
+    )
+
+
+def kaggle_action():
+    ...
+
+
+platform = get_platform()
+if platform == 'colab':
+    colab_action()
+elif platform == 'kaggle':
+    kaggle_action()
+
+from tools.express import Backend
+
+Backend.set_paths(platform)
+
+# %%
 import datetime
 import numpy as np
 import tensorflow as tf
+from tools import utils, express
 
-from tools import utils,express
-from tools.express import Connector
 from models import m_base as test_model
-seq_len = 100
 
-Connector.connect()
+seq_len = 100
 
 # %%
 ## Load data
@@ -44,27 +100,27 @@ while input_name == '':
         f"Input train name to {'restore' if restore else 'build new'}: ")
 
 if restore:
-    model,train_name= express.restore_model(input_name)
+    model, train_name = express.restore_model(input_name)
 else:
     # parametrs = utils.DataClass(test_model.PARAMETRS)
 
-## Set up parametrs
+    ## Set up parametrs
 
     model = test_model.blocks.build_model(**parametrs.Data_nested)
     train_name = f"{input_name}{date_tag}"
     print(
-    f'Pattern model: {test_model.__name__}',
-    f'Train name: {train_name}',
-    'Parametrs:',
-    parametrs,
-    sep='\n',
-)
+        f'Pattern model: {test_model.__name__}',
+        f'Train name: {train_name}',
+        'Parametrs:',
+        parametrs,
+        sep='\n',
+    )
 model.summary()
 
 # %%
 ## Callbacks
 callback_freq = 'epoch'
-train_dir = f'{Connector.callback_path}/{train_name}'
+train_dir = f'{Backend.callback_path}/{train_name}'
 
 callbacks = [
     tf.keras.callbacks.TensorBoard(

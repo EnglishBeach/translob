@@ -17,12 +17,12 @@ import keras_tuner
 
 from tools import utils, express
 from tools.utils import DataClass
-from tools.express import Connector
+from tools.express import Backend
 from models import m_base as test_model
 
 seq_len = 100
 
-Connector.connect()
+Backend.connect()
 
 # %%
 ## Load data
@@ -133,7 +133,7 @@ print(
 # %%
 ##Callbacks
 callback_freq = 100
-model_dir = f'{Connector.callback_path}/{search_name}'
+model_dir = f'{Backend.callback_path}/{search_name}'
 callbacks = [
     tf.keras.callbacks.TensorBoard(
         log_dir=model_dir,
