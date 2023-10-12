@@ -1,6 +1,6 @@
 # %%
 ## For collab
-# %tensorboard
+%tensorboard
 # try:
 #     from google.colab import drive
 #     drive.mount('/content/drive/',force_remount=True)
@@ -10,7 +10,6 @@
 # except: pass
 
 # %%
-import os
 import datetime
 import numpy as np
 import tensorflow as tf
@@ -18,9 +17,12 @@ import keras_tuner
 
 from tools import utils, express
 from tools.utils import DataClass
+from tools.express import Connector
 from models import m_base as test_model
 
 seq_len = 100
+
+Connector.connect()
 
 # %%
 ## Load data
@@ -84,16 +86,21 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
 
     DEFAULT_PARAMETRS.transformer.share_weights =False
 
-    DEFAULT_PARAMETRS.feed_forward.kernel_regularizer = hp.Choice(
+    choices= {'l2':'l2','None':None}
+    choice = hp.Choice(
         name='regularizer',
-        values=['l2', 'None'],
-        default='l2',
+        values=list(choices),
+        default='None',
     )
 
+
+    DEFAULT_PARAMETRS.feed_forward.kernel_regularizer = choices[choice]
+
     DEFAULT_PARAMETRS.optimizer = tf.keras.optimizers.legacy.Adam(
-        learning_rate=hp.Choice(name='lr',
-                                default=0.0001,
-                                values=[0.01, 0.001, 0.0005, 0.0001]),
+        learning_rate=0.0001,
+        # p.Choice(name='lr',
+        #                         default=0.0001,
+        #                         values=[0.01, 0.001, 0.0005, 0.0001]),
         beta_1=0.9,
         beta_2=0.999,
     )
@@ -126,7 +133,7 @@ print(
 # %%
 ##Callbacks
 callback_freq = 100
-model_dir = f'{express.callback_path}/{search_name}'
+model_dir = f'{Connector.callback_path}/{search_name}'
 callbacks = [
     tf.keras.callbacks.TensorBoard(
         log_dir=model_dir,

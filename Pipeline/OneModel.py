@@ -1,23 +1,14 @@
 # %%
-## For collab
-# %tensorboard
-# try:
-#     from google.colab import drive
-#     drive.mount('/content/drive/',force_remount=True)
-#     %cd /content/drive/My Drive/LOB/
-#     %pip install automodinit keras_tuner
-#     !nohup /usr/bin/python3 /content/drive/MyDrive/LOB/Colab_saver.py &
-# except: pass
-
-# %%
-import os
 import datetime
 import numpy as np
 import tensorflow as tf
 
 from tools import utils,express
+from tools.express import Connector
 from models import m_base as test_model
 seq_len = 100
+
+Connector.connect()
 
 # %%
 ## Load data
@@ -39,7 +30,12 @@ datasets = express.build_datasets(
 express.inspect_datasets(datasets)
 
 # %%
+parametrs = utils.DataClass(test_model.PARAMETRS)
+parametrs
+
+# %%
 ## Build
+tf.keras.backend.clear_session()
 restore = True if input('Restore? (y-yes, enter-no): ') == 'y' else False
 input_name = ''
 date_tag = f'({datetime.datetime.now().strftime("%H-%M-%S--%d.%m")})'
@@ -50,7 +46,10 @@ while input_name == '':
 if restore:
     model,train_name= express.restore_model(input_name)
 else:
-    parametrs = utils.DataClass(test_model.PARAMETRS)
+    # parametrs = utils.DataClass(test_model.PARAMETRS)
+
+## Set up parametrs
+
     model = test_model.blocks.build_model(**parametrs.Data_nested)
     train_name = f"{input_name}{date_tag}"
     print(
@@ -65,23 +64,23 @@ model.summary()
 # %%
 ## Callbacks
 callback_freq = 'epoch'
-train_dir = f'{express.callback_path}/{train_name}'
+train_dir = f'{Connector.callback_path}/{train_name}'
 
 callbacks = [
-    # tf.keras.callbacks.TensorBoard(
-    #     log_dir=train_dir,
-    #     histogram_freq=1,
-    #     update_freq=callback_freq,
-    # ),
-    # tf.keras.callbacks.ModelCheckpoint(
-    #     f'{train_dir}/checkpoints/' + '{epoch:04d}.keras',
-    #     monitor="val_sp_acc",
-    #     verbose=0,
-    #     save_best_only=False,
-    #     save_weights_only=False,
-    #     mode="auto",
-    #     save_freq=callback_freq,
-    # )
+    tf.keras.callbacks.TensorBoard(
+        log_dir=train_dir,
+        histogram_freq=1,
+        update_freq=callback_freq,
+    ),
+    tf.keras.callbacks.ModelCheckpoint(
+        f'{train_dir}/checkpoints/' + '{epoch:04d}.keras',
+        monitor="val_sp_acc",
+        verbose=0,
+        save_best_only=False,
+        save_weights_only=False,
+        mode="auto",
+        save_freq=callback_freq,
+    )
 ]
 
 print(
