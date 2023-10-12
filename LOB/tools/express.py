@@ -9,21 +9,52 @@ from .utils import inspect_data, inspect_dataset, build_dataset
 
 
 # Paths
-def check_using_jupyter():
-    try:
-        get_ipython().__class__.__name__
-        using_jupyter = True
-    except NameError:
-        using_jupyter = False
+def get_platform():
+    platform = ''
 
+    # Windows
+    if os.name == 'nt':
+        try:
+            get_ipython().__class__.__name__
+            platform = 'jupyter'
+        except NameError:
+            platform = 'python'
+
+    elif os.name == 'posix':
+        # Kaggle
+        if 'KAGGLE_DATA_PROXY_TOKEN' in os.environ.keys():
+            platform = 'kaggle'
+
+    # Google Colab
+        else:
+            try:
+                from google.colab import drive
+                platform = 'colab'
+            except ModuleNotFoundError:
+                platform = None
+
+    print(f'{platform} platform used')
+
+    return platform
+
+
+def path_correct(platform):
     global prefix, save_path, dataset_path, callback_path
-    prefix = '..' if using_jupyter else '.'
+    prefix= {
+        'python':'.',
+        'jupyter':'..',
+        'kaggle':'',
+        'colab':'',
+    }
+    prefix = prefix[platform]
+
     save_path = prefix + r'/LOB/saved_data'
-    dataset_path = prefix + r'/dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
     callback_path = prefix + f'/Temp/callbacks'
 
+    dataset_path = prefix + r'/dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
 
-check_using_jupyter()
+
+path_correct(get_platform())
 
 
 # Save
