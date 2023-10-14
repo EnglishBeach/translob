@@ -1,7 +1,9 @@
 import os as _os
+import datetime as _datetime
 import numpy as _np
 import tensorflow as _tf
 from sklearn.model_selection import train_test_split as _train_test_split
+
 
 from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
@@ -203,6 +205,15 @@ class DataBack:
 
 class ModelBack:
     callback_path = f'/Temp/callbacks'
+
+    @staticmethod
+    def _get_time_tag():
+        time_now = _datetime.datetime.now(_datetime.timezone.utc)+_datetime.timedelta(hours=3)
+        return f'({time_now.strftime("%H;%M;%S--%d.%m")})'
+
+    @classmethod
+    def get_search_name(cls,name):
+        return f'search_{name}{cls._get_time_tag()}'
 
     @classmethod
     def restore_model(cls, input_name):
