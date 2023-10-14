@@ -4,7 +4,6 @@ import numpy as _np
 import tensorflow as _tf
 from sklearn.model_selection import train_test_split as _train_test_split
 
-
 from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
 
 # download FI2010 dataset from
@@ -208,12 +207,17 @@ class ModelBack:
 
     @staticmethod
     def _get_time_tag():
-        time_now = _datetime.datetime.now(_datetime.timezone.utc)+_datetime.timedelta(hours=3)
+        time_now = _datetime.datetime.now(
+            _datetime.timezone.utc) + _datetime.timedelta(hours=3)
         return f'({time_now.strftime("%H;%M;%S--%d.%m")})'
 
     @classmethod
-    def get_search_name(cls,name):
+    def get_search_name(cls, name):
         return f'search_{name}{cls._get_time_tag()}'
+
+    @classmethod
+    def get_training_name(cls, name):
+        return f'{name}{cls._get_time_tag()}'
 
     @classmethod
     def restore_model(cls, input_name):
@@ -223,11 +227,12 @@ class ModelBack:
         model = _tf.keras.models.load_model(
             f'{restore_path}/{checkpoint_list[-1]}')
 
-        print(f'Model {checkpoint_list[-1]} loaded')
+
         restored_epoch = checkpoint_list[-1].split('.')[0]
         restored_name = input_name.split('(')[0]
-        new_name = f'restore_{restored_epoch}_{restored_name}'
+        new_name = f'restore_{restored_epoch}_{restored_name}{cls._get_time_tag()}'
 
+        print(f'Model {input_name} restored on  {restored_epoch} ')
         return model, new_name
 
 

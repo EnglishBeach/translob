@@ -32,14 +32,11 @@ def get_platform():
 
 
 def colab_action():
-    project_name = 'LOB'
     from google.colab import drive
     drive.mount('/content/drive/', force_remount=True)
-    os.chdir(f'/content/drive/My Drive/{project_name}/Pipeline')
+    os.chdir(f'/content/drive/My Drive/LOB/Pipeline')
     os.system('pip install automodinit keras_tuner')
-    os.system(
-        f'nohup /usr/bin/python3 /content/drive/MyDrive/{project_name}/Pipeline/Colab_saver.py'
-    )
+    os.system('nohup /usr/bin/python3 Colab_saver.py &')
 
 
 def kaggle_action():
@@ -52,19 +49,19 @@ if platform == 'colab':
 elif platform == 'kaggle':
     kaggle_action()
 
-from tools.express import Backend
 
-Backend.set_paths(platform)
+import backend as B
+B.set_backend(platform)
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
+from backend import DataBack,ModelBack,DataClass
+seq_len = 100
 
 # %%
-import datetime
-import numpy as np
-import tensorflow as tf
-from tools import utils, express
-
 from models import m_base as test_model
-
-seq_len = 100
 
 # %%
 ## Load data
@@ -72,47 +69,38 @@ proportion = input('Data proportion 100-0 in % (press enter for all): ')
 if proportion == '': proportion = 1
 else: proportion = float(proportion) / 100
 
-row_data = express.load_saved_datas(proportion)
-# row_data = data.load_datas(horizon,path=r'../dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore',)
-express.inspect_datas(row_data)
+train, val, test = DataBack.from_saved(proportion=proportion,
+                                       train_indexes=[0],
+                                       val_indexes=[0])
+DataBack.inspect_data(train=train, val=val, test=test)
 
-datasets = express.build_datasets(
-    datas=row_data,
-    batch_size=100,
-    seq_len=seq_len,
-)
-(ds_train, ds_val, ds_test) =\
-(datasets['train'], datasets['val'], datasets['test'])
-express.inspect_datasets(datasets)
+ds_train = DataBack.build_dataset(data=train, seq_len=seq_len, batch_size=100)
+ds_val = DataBack.build_dataset(data=val, seq_len=seq_len, batch_size=100)
+DataBack.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
-parametrs = utils.DataClass(test_model.PARAMETRS)
-parametrs
+DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
+DEFAULT_PARAMETRS
 
 # %%
 ## Build
 tf.keras.backend.clear_session()
 restore = True if input('Restore? (y-yes, enter-no): ') == 'y' else False
 input_name = ''
-date_tag = f'({datetime.datetime.now().strftime("%H-%M-%S--%d.%m")})'
 while input_name == '':
     input_name = input(
         f"Input train name to {'restore' if restore else 'build new'}: ")
-
 if restore:
-    model, train_name = express.restore_model(input_name)
+    model, train_name = ModelBack.restore_model(input_name)
 else:
-    # parametrs = utils.DataClass(test_model.PARAMETRS)
-
     ## Set up parametrs
-
-    model = test_model.blocks.build_model(**parametrs.Data_nested)
-    train_name = f"{input_name}{date_tag}"
+    model = test_model.blocks.build_model(**DEFAULT_PARAMETRS.Data_nested)
+    train_name = ModelBack.get_training_name(input_name)
     print(
         f'Pattern model: {test_model.__name__}',
         f'Train name: {train_name}',
         'Parametrs:',
-        parametrs,
+        DEFAULT_PARAMETRS,
         sep='\n',
     )
 model.summary()
@@ -120,7 +108,7 @@ model.summary()
 # %%
 ## Callbacks
 callback_freq = 'epoch'
-train_dir = f'{Backend.callback_path}/{train_name}'
+train_dir = f'{ModelBack.callback_path}/{train_name}'
 
 callbacks = [
     tf.keras.callbacks.TensorBoard(
@@ -145,6 +133,9 @@ print(
     sep='\n',
 )
 
+
+# %%
+# %tensorboard
 
 # %%
 ## Train
