@@ -1,28 +1,91 @@
 # %%
-## For collab
-%tensorboard
-# try:
-#     from google.colab import drive
-#     drive.mount('/content/drive/',force_remount=True)
-#     %cd /content/drive/My Drive/LOB/
-#     %pip install automodinit keras_tuner
-#     !nohup /usr/bin/python3 /content/drive/MyDrive/LOB/Colab_saver.py &
-# except: pass
+## For platforms
+import os
+
+
+def get_platform():
+    platform = ''
+
+    # Windows
+    if os.name == 'nt':
+        try:
+            get_ipython().__class__.__name__
+            platform = 'jupyter'
+        except NameError:
+            platform = 'python'
+
+    elif os.name == 'posix':
+        # Kaggle
+        if 'KAGGLE_DATA_PROXY_TOKEN' in os.environ.keys():
+            platform = 'kaggle'
+
+    # Google Colab
+        else:
+            try:
+                from google.colab import drive
+                platform = 'colab'
+            except ModuleNotFoundError:
+                platform = None
+
+    print(f'Use: {platform}')
+    return platform
+
+
+def colab_action():
+    from google.colab import drive
+    drive.mount('/content/drive/', force_remount=True)
+    os.chdir(f'/content/drive/My Drive/LOB/Pipeline')
+    os.system('pip install automodinit keras_tuner')
+    os.system('nohup /usr/bin/python3 Colab_saver.py &')
+
+
+def kaggle_action():
+    ...
+
+
+platform = get_platform()
+if platform == 'colab':
+    colab_action()
+elif platform == 'kaggle':
+    kaggle_action()
+
+
+import backend as B
+B.set_backend(platform)
+
+# %%
+# %tensorboard
 
 # %%
 import datetime
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import keras_tuner
 
-from tools import utils, express
-from tools.utils import DataClass
-from tools.express import Backend
+from backend import DataBack,ModelBack,DataClass
+
 from models import m_base as test_model
 
 seq_len = 100
 
-Backend.connect()
+# %%
+## Savig data
+# header = '../dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore'
+# train_files= [
+#         f'{header}_Training/Train_Dst_NoAuction_ZScore_CF_{i}.txt'
+#         for i in range(7, 8)
+#     ]
+
+# test_files=[
+#         f'{header}_Testing/Test_Dst_NoAuction_ZScore_CF_{i}.txt'
+#         for i in range(1, 2)
+#     ]
+
+# all,test = Datasets.from_files(train_files)
+# train, val = Datasets.validation_split(all)
+# Datasets.inspect_data(train=train,val=val)
+# Datasets.save_data(train=train,val=val)
 
 # %%
 ## Load data
@@ -30,18 +93,14 @@ proportion = input('Data proportion 100-0 in % (press enter for all): ')
 if proportion == '': proportion = 1
 else: proportion = float(proportion) / 100
 
-row_data = express.load_saved_datas(proportion)
-# row_data = data.load_datas(horizon,path=r'../dataset/BenchmarkDatasets/NoAuction/1.NoAuction_Zscore/NoAuction_Zscore',)
-express.inspect_datas(row_data)
+train, val, test = DataBack.from_saved(proportion=proportion,
+                                       train_indexes=[0],
+                                       val_indexes=[0])
+DataBack.inspect_data(train=train, val=val, test=test)
 
-datasets = express.build_datasets(
-    datas=row_data,
-    batch_size=100,
-    seq_len=seq_len,
-)
-(ds_train, ds_val, ds_test) =\
-(datasets['train'], datasets['val'], datasets['test'])
-express.inspect_datasets(datasets)
+ds_train = DataBack.build_dataset(data=train, seq_len=seq_len, batch_size=100)
+ds_val = DataBack.build_dataset(data=val, seq_len=seq_len, batch_size=100)
+DataBack.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
 DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
@@ -84,27 +143,40 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
 
     DEFAULT_PARAMETRS.convolutional.dilation_steps = 5
 
-    DEFAULT_PARAMETRS.transformer.share_weights =False
+    DEFAULT_PARAMETRS.transformer.share_weights = False
 
-    choices= {'l2':'l2','None':None}
+    choices = {'l2': 'l2', 'None': None}
     choice = hp.Choice(
         name='regularizer',
         values=list(choices),
         default='None',
     )
-
-
     DEFAULT_PARAMETRS.feed_forward.kernel_regularizer = choices[choice]
 
-    DEFAULT_PARAMETRS.optimizer = tf.keras.optimizers.legacy.Adam(
-        learning_rate=0.0001,
-        # p.Choice(name='lr',
-        #                         default=0.0001,
-        #                         values=[0.01, 0.001, 0.0005, 0.0001]),
-        beta_1=0.9,
-        beta_2=0.999,
+    lr = hp.Choice(
+        name='lr',
+        default=0.0001,
+        values=[0.01, 0.001, 0.0005, 0.0001],
     )
+    choices = {
+        'sgd':
+        tf.keras.optimizers.legacy.SGD(learning_rate=lr),
+        'rms':
+        tf.keras.optimizers.legacy.RMSprop(learning_rate=lr),
+        'adam':
+        tf.keras.optimizers.legacy.Adam(
+            learning_rate=lr,
+            beta_1=0.9,
+            beta_2=0.999,
+        ),
+    }
 
+    choice = hp.Choice(
+        name='optimazer',
+        default='adam',
+        values=['adam', 'rms', 'sgd'],
+    )
+    DEFAULT_PARAMETRS.optimizer = choices[choice]
     return DEFAULT_PARAMETRS
 
 # %%
@@ -133,7 +205,7 @@ print(
 # %%
 ##Callbacks
 callback_freq = 100
-model_dir = f'{Backend.callback_path}/{search_name}'
+model_dir = f"{ModelBack.callback_path}/{search_name}"
 callbacks = [
     tf.keras.callbacks.TensorBoard(
         log_dir=model_dir,
