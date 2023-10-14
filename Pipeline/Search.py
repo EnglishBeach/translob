@@ -49,25 +49,21 @@ if platform == 'colab':
 elif platform == 'kaggle':
     kaggle_action()
 
-
 import backend as B
+
 B.set_backend(platform)
 
-# %%
-# %tensorboard
-
-# %%
-import datetime
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import keras_tuner
 
-from backend import DataBack,ModelBack,DataClass
-
-from models import m_base as test_model
+from backend import DataBack, ModelBack, DataClass
 
 seq_len = 100
+
+# %%
+from models import m_base as test_model
 
 # %%
 ## Savig data
@@ -103,8 +99,8 @@ ds_val = DataBack.build_dataset(data=val, seq_len=seq_len, batch_size=100)
 DataBack.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
-DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
-DEFAULT_PARAMETRS
+PARAMETRS = DataClass(test_model.PARAMETRS)
+PARAMETRS
 
 # %%
 ## Tuner parametrs
@@ -141,9 +137,9 @@ DEFAULT_PARAMETRS
 
 def configure_parametrs(hp: keras_tuner.HyperParameters):
 
-    DEFAULT_PARAMETRS.convolutional.dilation_steps = 5
+    PARAMETRS.convolutional.dilation_steps = 5
 
-    DEFAULT_PARAMETRS.transformer.share_weights = False
+    PARAMETRS.transformer.share_weights = False
 
     choices = {'l2': 'l2', 'None': None}
     choice = hp.Choice(
@@ -151,7 +147,7 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
         values=list(choices),
         default='None',
     )
-    DEFAULT_PARAMETRS.feed_forward.kernel_regularizer = choices[choice]
+    PARAMETRS.feed_forward.kernel_regularizer = choices[choice]
 
     lr = hp.Choice(
         name='lr',
@@ -176,8 +172,8 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
         default='adam',
         values=['adam', 'rms', 'sgd'],
     )
-    DEFAULT_PARAMETRS.optimizer = choices[choice]
-    return DEFAULT_PARAMETRS
+    PARAMETRS.optimizer = choices[choice]
+    return PARAMETRS
 
 # %%
 ## Build
@@ -188,10 +184,9 @@ def search_model(hp):
 
 
 input_name = ''
-date_tag = f'({datetime.datetime.now().strftime("%H-%M-%S--%d.%m")})'
 while input_name == '':
     input_name = input(f"Input search name: ")
-search_name = f'search_{input_name}{date_tag}'
+search_name = ModelBack.get_search_name(input_name)
 
 print(
     f'Pattern model: {test_model.__name__}',
@@ -201,22 +196,21 @@ print(
     sep='\n',
 )
 
-
 # %%
 ##Callbacks
 callback_freq = 100
-model_dir = f"{ModelBack.callback_path}/{search_name}"
+search_dir = f"{ModelBack.callback_path}/{search_name}"
 callbacks = [
     tf.keras.callbacks.TensorBoard(
-        log_dir=model_dir,
+        log_dir=search_dir,
         histogram_freq=callback_freq,
         update_freq=callback_freq,
     ),
 ]
-
+ModelBack.dump_data(data=PARAMETRS, model_path=search_dir)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
-    f'Directory: {model_dir}',
+    f'Directory: {search_dir}',
     sep='\n',
 )
 
@@ -226,8 +220,11 @@ tuner = keras_tuner.GridSearch(
     hypermodel=search_model,
     objective="loss",
     executions_per_trial=1,
-    directory=model_dir,
+    directory=search_dir,
 )
+
+# %%
+# %tensorboard
 
 # %%
 ## Train

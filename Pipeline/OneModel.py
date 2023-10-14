@@ -79,8 +79,8 @@ ds_val = DataBack.build_dataset(data=val, seq_len=seq_len, batch_size=100)
 DataBack.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
-DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
-DEFAULT_PARAMETRS
+PARAMETRS= DataClass(test_model.PARAMETRS)
+PARAMETRS
 
 # %%
 ## Build
@@ -94,22 +94,22 @@ if restore:
     model, train_name = ModelBack.restore_model(input_name)
 else:
     ## Set up parametrs
-    model = test_model.blocks.build_model(**DEFAULT_PARAMETRS.DATA_NESTED)
+    model = test_model.blocks.build_model(**PARAMETRS.DATA_NESTED)
     train_name = ModelBack.get_training_name(input_name)
     print(
         f'Pattern model: {test_model.__name__}',
         f'Train name: {train_name}',
         'Parametrs:',
-        DEFAULT_PARAMETRS,
+        PARAMETRS,
         sep='\n',
     )
+
 model.summary()
 
 # %%
 ## Callbacks
-callback_freq = 'epoch'
+callback_freq = 1
 train_dir = f'{ModelBack.callback_path}/{train_name}'
-
 callbacks = [
     tf.keras.callbacks.TensorBoard(
         log_dir=train_dir,
@@ -126,7 +126,7 @@ callbacks = [
         save_freq=callback_freq,
     )
 ]
-
+ModelBack.dump_data(data=PARAMETRS,model_path=train_dir)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
     f'Directory: {train_dir}',
