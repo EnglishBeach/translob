@@ -1,8 +1,4 @@
 import numpy as _np
-import pandas as _pd
-
-from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_dataset_from_array
-
 
 class DataClass:
     """
@@ -188,40 +184,55 @@ class DataClass:
             return result
 
 
-def build_dataset(
-    x: _np.ndarray,
-    y: _np.ndarray,
-    seq_len,
-    batch_size=128,
-    **timeseries_kwargs,
-):
 
-    def set_shape(value_x, value_y):
-        value_x.set_shape((None, seq_len, x.shape[-1]))
-        return value_x, value_y
+    def load_all(self, lists: dict = {'train': 1, 'val': 1, 'test': 1}):
+        for name in lists:
+            for i in lists[name]:
+                with open(
+                        f'{AbstractDataBackend.path_dataset}/x_{name}{i}.npy',
+                        'rb') as file:
+                    x = _np.load(file)
+                with open(
+                        f'{AbstractDataBackend.path_dataset}/y_{name}{i}.npy',
+                        'rb') as file:
+                    y = _np.load(file)
+                self.data[name].append((x, y))
 
-    ds = _timeseries_dataset_from_array(
-        data=x,
-        targets=y,
-        batch_size=batch_size,
-        sequence_length=seq_len,
-        **timeseries_kwargs,
-    )
+    def save_all(self):
+        for name in self.data:
+            for i, (x, y) in enumerate(self.data[name]):
+                _np.save(file=f"{self._path['dataset']}/x_{name}{i}.npy", arr=x)
+                _np.save(file=f"{self._path['dataset']}/y_{name}{i}.npy", arr=y)
 
-    return ds.map(set_shape)
+    def build_datasets(self, batch_size, seq_len):
+        result = {}
+        ds0 = None
+        for name in self.data:
+            for i, (x, y) in enumerate(self.data[name]):
+                ds = timeseries_dataset(
+                    x=x,
+                    y=y,
+                    batch_size=batch_size,
+                    seq_len=seq_len,
+                )
+                if i != 0:
+                    ds0 = ds0.concatenate(ds)
+                else:
+                    ds0 = ds
+            self.ds[name] = ds
 
+    def _inspect_data(self):
+        print('    Datas:')
+        for name in self.data:
+            for x, y in self.data[name]:
+                print(
+                    f'{name: <10}: x= {str(x.shape): <15} | y= {str(y.shape): <15}'
+                )
 
-def inspect_data(data, name='data'):
-    if data is not None:
-        x = data[0]
-        y = data[1]
-        print(f'{name: <10}: x= {str(x.shape): <15} | y= {str(y.shape): <15}')
-    else:
-        print(f'{name <10}: None')
-
-
-def inspect_dataset(ds: _pd.DataFrame, name='dataset'):
-    if ds is not None:
-        print(f'{name: <10}: {[len(ds)]+ list(ds.element_spec[0].shape)[1:]}')
-    else:
-        print(f'{name <10}: None')
+    def _inspect_dataset(self):
+        print('    Datasets:')
+        for name in self.ds:
+            ds = self.ds[name]
+            print(
+                f'{name: <10}: {[len(ds)]+ list(ds.element_spec[0].shape)[1:]}'
+            )
