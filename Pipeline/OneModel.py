@@ -94,7 +94,7 @@ if restore:
     model, train_name = ModelBack.restore_model(input_name)
 else:
     ## Set up parametrs
-    model = test_model.blocks.build_model(**DEFAULT_PARAMETRS.Data_nested)
+    model = test_model.blocks.build_model(**DEFAULT_PARAMETRS.DATA_NESTED)
     train_name = ModelBack.get_training_name(input_name)
     print(
         f'Pattern model: {test_model.__name__}',

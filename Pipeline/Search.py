@@ -183,7 +183,7 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
 ## Build
 def search_model(hp):
     parametrs = configure_parametrs(hp)
-    model = test_model.blocks.build_model(**parametrs.Data_nested)
+    model = test_model.blocks.build_model(**parametrs.DATA_NESTED)
     return model
 
 

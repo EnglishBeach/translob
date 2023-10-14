@@ -71,7 +71,6 @@ class DataBack:
         **process_data_kwargs,
     ):
         train = []
-        val = []
         for path in train_files:
             train_data = _np.loadtxt(path)
             train.append(cls.process_data(train_data, **process_data_kwargs))
@@ -82,24 +81,6 @@ class DataBack:
 
             test.append(cls.process_data(test_data, **process_data_kwargs))
         return train, test
-
-    @classmethod
-    def _one_from_saved(cls, kind, i, proportion):
-        x_path = f"{cls.paths['dataset']}/x_{kind}{i}.npy"
-        with open(x_path, 'rb') as file:
-            x = _np.load(file)
-        y_path = f"{cls.paths['dataset']}/y_{kind}{i}.npy"
-        with open(y_path, 'rb') as file:
-            y = _np.load(file)
-
-        assert (x != None) or (y != None), FileExistsError(
-            f'File on {x_path} or {y_path} not exists')
-
-        data_len = int(len(x) * proportion)
-        x = x[:data_len]
-        y = y[:data_len]
-
-        return x, y
 
     @classmethod
     def from_saved(
@@ -203,7 +184,7 @@ class DataBack:
 
 
 class ModelBack:
-    callback_path = f'/Temp/callbacks'
+    callback_path = '/Temp/callbacks'
 
     @staticmethod
     def _get_time_tag():
@@ -226,7 +207,6 @@ class ModelBack:
 
         model = _tf.keras.models.load_model(
             f'{restore_path}/{checkpoint_list[-1]}')
-
 
         restored_epoch = checkpoint_list[-1].split('.')[0]
         restored_name = input_name.split('(')[0]
@@ -252,7 +232,7 @@ class DataClass:
 
     def __init__(
         self,
-        target_dict: dict = None,
+        target_dict: dict = {},
         name: str = '',
     ):
         for field_name in self.__get_all_fields():
@@ -264,24 +244,24 @@ class DataClass:
 
     def __new__(
         cls,
-        target_dict: dict = None,
+        target_dict: dict = {},
         name: str = '',
     ):
         """
         build from nested dict
         """
-        if target_dict is not None:
+        if target_dict != {}:
             result = DataClass()
             return result.__rec_build(name, target_dict)
         return super().__new__(cls)
 
     def __rec_build(self, field_name: str, field):
         if not isinstance(field, dict):
-            self.__setattr__(field_name, field)
+            setattr(self, field_name, field)
             return None
 
         result = DataClass()
-        self.__setattr__(field_name, result)
+        setattr(self, field_name, result)
 
         for inner_field_name, inner_field in field.items():
             inner_result = result.__rec_build(
@@ -289,7 +269,7 @@ class DataClass:
                 inner_field,
             )
             if inner_result is not None:
-                self.__setattr__(field_name, inner_result)
+                setattr(self, field_name, inner_result)
         return result
 
     def __call__(self, **kwargs: dict):
@@ -297,16 +277,15 @@ class DataClass:
         Set up parametrs
         """
         for key, value in kwargs.items():
-            self.__setattr__(key, value)
+            setattr(self, key, value)
 
     def __get_all_fields(self):
         # Add except fields
-
         options = list(
             filter(
                 lambda x:
                 (x[0] != '_') and (x not in self.__not_data(get=True)),
-                self.__dir__(),
+                dir(self),
             ))
         return options
 
@@ -323,7 +302,7 @@ class DataClass:
         result = self_margin
         for field_name in self.__get_all_fields():
             inner_result = DataClass._rec_print_depr(
-                self.__getattribute__(field_name),
+                getattr(self, field_name),
                 self_margin + ' ' * 4,
             )
             result += f'\n{self_margin}{field_name}: {inner_result}'
@@ -343,18 +322,19 @@ class DataClass:
         pipe = "│  "
         tee = "├─ "
         blank = "   "
-        result = f'{self_header}{end if last else tee}{self_name}\n'
 
+        result=''
         if not isinstance(self, DataClass):
             if '<' in repr(self):
-                self = repr(self).split('at')[0].replace('<', '').strip()
+                result = repr(self).split('at')[0].replace('<', '').strip()
 
-            return f'{self_header}{end if last else tee}{self_name}: {self}\n'
+            return f'{self_header}{end if last else tee}{self_name}: {result}\n'
 
+        result = f'{self_header}{end if last else tee}{self_name}\n'
         fields = self.__get_all_fields()
         for field_name in fields:
             inner_result = DataClass.__rec_print(
-                self.__getattribute__(field_name),
+                getattr(self, field_name),
                 self_name=field_name,
                 self_header=f'{self_header}{blank if last else pipe}',
                 last=field_name == fields[-1])
@@ -365,7 +345,7 @@ class DataClass:
 
     @property
     @__not_data
-    def Data_nested(self):
+    def DATA_NESTED(self):
         """
         Containing options dict
         """
@@ -378,7 +358,7 @@ class DataClass:
         result = {}
         for field_name in self.__get_all_fields():
             inner_result = DataClass.__rec_nested(
-                self.__getattribute__(field_name),
+                getattr(self, field_name),
                 field_name,
             )
             result.update(inner_result)
@@ -390,7 +370,7 @@ class DataClass:
 
     @property
     @__not_data
-    def Data_expanded(self):
+    def DATA_EXPANDED(self):
         return {
             compound_key.strip()[2:]: value
             for value, compound_key in self.__rec_expanded()
@@ -402,7 +382,7 @@ class DataClass:
         else:
             for field_name in self.__get_all_fields():
                 for inner_result in DataClass.__rec_expanded(
-                        self.__getattribute__(field_name),
+                        getattr(self, field_name),
                         str(composite_key) + '__' + str(field_name),
                 ):
                     yield inner_result
@@ -415,6 +395,6 @@ class DataClass:
             return DataClass(result)
         result = getattr(self, value, None)
         if isinstance(result, DataClass):
-            return DataClass(result.Data_nested)
+            return DataClass(result.DATA_NESTED)
         else:
             return result
