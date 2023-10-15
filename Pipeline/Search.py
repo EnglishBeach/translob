@@ -73,15 +73,15 @@ from models import m_preln as test_model
 #         for i in range(7, 8)
 #     ]
 
-# test_files=[
-#         f'{header}_Testing/Test_Dst_NoAuction_ZScore_CF_{i}.txt'
-#         for i in range(1, 2)
-#     ]
+# # test_files=[
+# #         f'{header}_Testing/Test_Dst_NoAuction_ZScore_CF_{i}.txt'
+# #         for i in range(1, 2)
+# #     ]
 
-# all,test = Datasets.from_files(train_files)
-# train, val = Datasets.validation_split(all)
-# Datasets.inspect_data(train=train,val=val)
-# Datasets.save_data(train=train,val=val)
+# all,test = DataBack.from_files(train_files,horizon=4)
+# train, val = DataBack.validation_split(all)
+# DataBack.inspect_data(train=train,val=val)
+# DataBack.save_data(train=train,val=val)
 
 # %%
 ## Load data
@@ -100,9 +100,6 @@ DataBack.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
 PARAMETRS = DataClass(test_model.PARAMETRS)
-PARAMETRS
-
-# %%
 PARAMETRS
 
 # %%

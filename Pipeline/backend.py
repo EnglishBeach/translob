@@ -313,7 +313,7 @@ class DataBack:
         return train, val, test
 
     @staticmethod
-    def validation_split(data, shuffle=True, val_size=0.2):
+    def validation_split(data, shuffle=False, val_size=0.2):
         train, val = [], []
         for x, y in data:
             x_train, x_val, y_train, y_val = _train_test_split(
