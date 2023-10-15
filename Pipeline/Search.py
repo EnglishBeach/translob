@@ -103,6 +103,9 @@ PARAMETRS = DataClass(test_model.PARAMETRS)
 PARAMETRS
 
 # %%
+PARAMETRS
+
+# %%
 ## Tuner parametrs
 def configure(hp: keras_tuner.HyperParameters,dump=False):
     parametrs= DataClass(PARAMETRS.DATA_NESTED)
@@ -119,13 +122,31 @@ def configure(hp: keras_tuner.HyperParameters,dump=False):
             default=True,
         )
 
-    parametrs.transformer.blocks = hp.Int(
-            'transformer_blocks',
-            default=2,
-            min_value=1,
-            max_value=3,
-            step=1,
-        )
+    dropout_rate: hp.Float(
+        'dropout_rate',
+        min_value=0,
+        max_value=0.5,
+        step=0.1,
+    )
+
+    choices = {'l2': 'l2', 'None': None}
+    choice = hp.Choice(
+        name='regularizer',
+        values=list(choices),
+        default='None',
+    )
+    parametrs.feed_forward.kernel_regularizer = choices[choice]
+
+    choice = hp.Choice(
+        name='out_activation',
+        default='softmax',
+        values=['softmax', 'none'],
+    )
+    choices={'softmax':'softmax','none':None}
+    parametrs.feed_forward.out_activation = choices[choice]
+
+
+
     if dump: return hp
     return parametrs
 
@@ -169,6 +190,8 @@ def configure(hp: keras_tuner.HyperParameters,dump=False):
 #     )
 #     parametrs.optimizer = choices[choice]
 
+
+
 #     if dump: return hp
 #     return parametrs
 
@@ -193,12 +216,6 @@ print(
     configure(keras_tuner.HyperParameters()),
     sep='\n',
 )
-
-# %%
-dump_config_function(configure)
-
-# %%
-{'a':dump_config_function(configure)}
 
 # %%
 ##Callbacks
