@@ -23,6 +23,8 @@ class TransformerLayer(tf.keras.layers.Layer):
         use_masking: bool = True,
         **kwargs,
     ):
+        self.num_heads = num_heads
+        self.use_masking = use_masking
         self.attention_layer = m_base.MultiHeadSelfAttention(
             num_heads,
             use_masking=use_masking,
@@ -35,6 +37,13 @@ class TransformerLayer(tf.keras.layers.Layer):
         self.addition_layer = tf.keras.layers.Add()
         super().__init__(**kwargs)
 
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "num_heads": self.num_heads,
+            "use_masking": self.use_masking,
+        })
+        return config
     def call(self, x, **kwargs):
         #PreLN: X -> norm2 -> attention -> +X -> norm2 -> transition -> +(+X)
 
