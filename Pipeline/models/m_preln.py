@@ -1,6 +1,6 @@
 import keras
 from . import m_base
-from .m_base import blocks
+# from .m_base import blocks
 
 
 class TransformerLayer(keras.layers.Layer):
@@ -69,54 +69,47 @@ def transformer_block(input_layer, share_weights, n_blocks, n_heads):
 
 PARAMETRS = m_base.PARAMETRS
 
+class blocks(m_base.blocks):
 
-def build_model(
-    seq_len,
-    cn__n_filters,
-    cn__dilation_steps,
-    an__blocks,
-    an__attention_heads,
-    an__share_weights,
-    ff__units,
-    ff__dropout_rate,
-    ff__activation,
-    ff__kernel_regularizer,
-    ff__kernel_initializer,
-    optimizer,
-):
-    # Model
-    inputs = blocks.input_block(seq_len)
-    x = inputs
-    x = blocks.cnn_block(
-        input_layer=x,
-        filters=cn__n_filters,
-        dilation_steps=cn__dilation_steps,
-    )
-    x = blocks.norm_block(input_layer=x)
-    x = blocks.positional_encoder_block(input_layer=x)
-    x = transformer_block(
-        input_layer=x,
-        n_blocks=an__blocks,
-        n_heads=an__attention_heads,
-        share_weights=an__share_weights,
-    )
-    x = blocks.ffn_block(
-        input_layer=x,
-        units=ff__units,
-        dropout_rate=ff__dropout_rate,
-        activation=ff__activation,
-        kernel_regularizer=ff__kernel_regularizer,
-        kernel_initializer=ff__kernel_initializer,
-    )
-
-    model = keras.Model(inputs=inputs, outputs=x)
-
-    # Compile
-    model.compile(
+    def build_model(
+        seq_len,
+        convolutional,
+        transformer,
+        feed_forward,
         optimizer,
-        loss=keras.losses.SparseCategoricalCrossentropy(),
-        metrics=[
-            keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
-        ],
-    )
-    return model
+    ):
+        # Model
+        inputs = blocks.input_block(seq_len)
+        x = inputs
+        x = blocks.cnn_block(
+            input_layer=x,
+            **convolutional
+        )
+        x = blocks.norm_block(input_layer=x)
+        x = blocks.positional_encoder_block(input_layer=x)
+        x = transformer_block(
+            input_layer=x,
+            n_blocks=an__blocks,
+            n_heads=an__attention_heads,
+            share_weights=an__share_weights,
+        )
+        x = blocks.ffn_block(
+            input_layer=x,
+            units=ff__units,
+            dropout_rate=ff__dropout_rate,
+            activation=ff__activation,
+            kernel_regularizer=ff__kernel_regularizer,
+            kernel_initializer=ff__kernel_initializer,
+        )
+
+        model = keras.Model(inputs=inputs, outputs=x)
+
+        # Compile
+        model.compile(
+            optimizer,
+            loss=keras.losses.SparseCategoricalCrossentropy(),
+            metrics=[
+                keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
+            ],
+        )
+        return model

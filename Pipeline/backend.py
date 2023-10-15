@@ -120,6 +120,7 @@ class DataClass:
 
         result = ''
         if not isinstance(self, DataClass):
+            result= self
             if '<' in repr(self):
                 result = repr(self).split('at')[0].replace('<', '').strip()
 

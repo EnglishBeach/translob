@@ -63,7 +63,7 @@ from backend import DataBack, ModelBack, DataClass
 seq_len = 100
 
 # %%
-from models import m_base as test_model
+from models import m_preln as test_model
 
 # %%
 ## Savig data
@@ -104,76 +104,70 @@ PARAMETRS
 
 # %%
 ## Tuner parametrs
-# def configure(hp: keras_tuner.HyperParameters):
-
-#     class CN_search(DataClass):
-#         dilation_steps = hp.Int(
-#             'dilation_steps',
-#             default=4,
-#             min_value=3,
-#             max_value=5,
-#             step=1,
-#         )
-
-#     class AN_search(DataClass):
-#         share_weights = hp.Boolean(
-#             'share_weights',
-#             default=True,
-#         )
-#         blocks = hp.Int(
-#             'an_blocks',
-#             default=2,
-#             min_value=1,
-#             max_value=3,
-#             step=1,
-#         )
-
-#     class Full_search(DataClass):
-#         cn = CN_search()
-#         an = AN_search()
-
-#     return Full_search()
-
-
 def configure_parametrs(hp: keras_tuner.HyperParameters):
+    parametrs= DataClass(PARAMETRS.DATA_NESTED)
+    parametrs.convolutional.dilation_steps = hp.Int(
+            'dilation_steps',
+            default=4,
+            min_value=3,
+            max_value=5,
+            step=1,
+        )
 
-    PARAMETRS.convolutional.dilation_steps = 5
+    parametrs.transformer.share_weights = hp.Boolean(
+            'share_weights',
+            default=True,
+        )
 
-    PARAMETRS.transformer.share_weights = False
+    parametrs.transformer.blocks = hp.Int(
+            'an_blocks',
+            default=2,
+            min_value=1,
+            max_value=3,
+            step=1,
+        )
+    return parametrs
 
-    choices = {'l2': 'l2', 'None': None}
-    choice = hp.Choice(
-        name='regularizer',
-        values=list(choices),
-        default='None',
-    )
-    PARAMETRS.feed_forward.kernel_regularizer = choices[choice]
 
-    lr = hp.Choice(
-        name='lr',
-        default=0.0001,
-        values=[0.01, 0.001, 0.0005, 0.0001],
-    )
-    choices = {
-        'sgd':
-        tf.keras.optimizers.legacy.SGD(learning_rate=lr),
-        'rms':
-        tf.keras.optimizers.legacy.RMSprop(learning_rate=lr),
-        'adam':
-        tf.keras.optimizers.legacy.Adam(
-            learning_rate=lr,
-            beta_1=0.9,
-            beta_2=0.999,
-        ),
-    }
+# def configure_parametrs(hp: keras_tuner.HyperParameters):
 
-    choice = hp.Choice(
-        name='optimazer',
-        default='adam',
-        values=['adam', 'rms', 'sgd'],
-    )
-    PARAMETRS.optimizer = choices[choice]
-    return PARAMETRS
+#     parametrs.convolutional.dilation_steps = 5
+
+#     parametrs.transformer.share_weights = False
+
+#     choices = {'l2': 'l2', 'None': None}
+#     choice = hp.Choice(
+#         name='regularizer',
+#         values=list(choices),
+#         default='None',
+#     )
+#     parametrs.feed_forward.kernel_regularizer = choices[choice]
+
+#     lr = hp.Choice(
+#         name='lr',
+#         default=0.0001,
+#         values=[0.01, 0.001, 0.0005, 0.0001],
+#     )
+#     choices = {
+#         'sgd':
+#         tf.keras.optimizers.legacy.SGD(learning_rate=lr),
+#         'rms':
+#         tf.keras.optimizers.legacy.RMSprop(learning_rate=lr),
+#         'adam':
+#         tf.keras.optimizers.legacy.Adam(
+#             learning_rate=lr,
+#             beta_1=0.9,
+#             beta_2=0.999,
+#         ),
+#     }
+
+#     choice = hp.Choice(
+#         name='optimazer',
+#         default='adam',
+#         values=['adam', 'rms', 'sgd'],
+#     )
+#     parametrs.optimizer = choices[choice]
+#     return parametrs
 
 # %%
 ## Build

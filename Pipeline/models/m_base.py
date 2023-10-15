@@ -24,6 +24,7 @@ def input_block(seq_len):
 # CN
 def cnn_block(
     input_layer,
+    *,
     filters,
     dilation_steps,
 ):
@@ -432,6 +433,7 @@ _get_custom_objects().update({
 
 def transformer_block(
     input_layer,
+    *,
     share_weights,
     blocks,
     heads,
@@ -456,6 +458,7 @@ def transformer_block(
 # FFN
 def ffn_block(
     input_layer,
+    *,
     dropout_rate,
     activation,
     units,
@@ -518,16 +521,21 @@ class blocks:
     transformer_block = transformer_block
     ffn_block = ffn_block
 
-    def build_model(seq_len, convolutional, transformer, feed_forward,
-                    optimizer):
+    def build_model(
+        seq_len,
+        convolutional,
+        transformer,
+        feed_forward,
+        optimizer,
+    ):
         # Model
         inputs = blocks.input_block(seq_len)
         x = inputs
-        x = blocks.cnn_block(input_layer=x, **convolutional)
-        x = blocks.norm_block(input_layer=x)
-        x = blocks.positional_encoder_block(input_layer=x)
-        x = blocks.transformer_block(input_layer=x, **transformer)
-        x = blocks.ffn_block(input_layer=x, **feed_forward)
+        x = blocks.cnn_block(x, **convolutional)
+        x = blocks.norm_block(x)
+        x = blocks.positional_encoder_block(x)
+        x = blocks.transformer_block(x, **transformer)
+        x = blocks.ffn_block(x, **feed_forward)
 
         model = tf.keras.Model(inputs=inputs, outputs=x)
 
