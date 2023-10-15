@@ -58,7 +58,7 @@ import pandas as pd
 import tensorflow as tf
 import keras_tuner
 
-from backend import DataBack, ModelBack, DataClass
+from backend import DataBack, ModelBack, DataClass,dump_config_function
 
 seq_len = 100
 
@@ -104,7 +104,7 @@ PARAMETRS
 
 # %%
 ## Tuner parametrs
-def configure_parametrs(hp: keras_tuner.HyperParameters):
+def configure(hp: keras_tuner.HyperParameters,dump=False):
     parametrs= DataClass(PARAMETRS.DATA_NESTED)
     parametrs.convolutional.dilation_steps = hp.Int(
             'dilation_steps',
@@ -120,16 +120,18 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
         )
 
     parametrs.transformer.blocks = hp.Int(
-            'an_blocks',
+            'transformer_blocks',
             default=2,
             min_value=1,
             max_value=3,
             step=1,
         )
+    if dump: return hp
     return parametrs
 
 
-# def configure_parametrs(hp: keras_tuner.HyperParameters):
+# def configure(hp: keras_tuner.HyperParameters,dump=False):
+#     parametrs= DataClass(PARAMETRS.DATA_NESTED)
 
 #     parametrs.convolutional.dilation_steps = 5
 
@@ -160,19 +162,21 @@ def configure_parametrs(hp: keras_tuner.HyperParameters):
 #             beta_2=0.999,
 #         ),
 #     }
-
 #     choice = hp.Choice(
 #         name='optimazer',
 #         default='adam',
 #         values=['adam', 'rms', 'sgd'],
 #     )
 #     parametrs.optimizer = choices[choice]
+
+#     if dump: return hp
 #     return parametrs
+
 
 # %%
 ## Build
 def search_model(hp):
-    parametrs = configure_parametrs(hp)
+    parametrs = configure(hp)
     model = test_model.blocks.build_model(**parametrs.DATA_NESTED)
     return model
 
@@ -186,9 +190,15 @@ print(
     f'Pattern model: {test_model.__name__}',
     f'Search name: {search_name}',
     'Parametrs:',
-    configure_parametrs(keras_tuner.HyperParameters()),
+    configure(keras_tuner.HyperParameters()),
     sep='\n',
 )
+
+# %%
+dump_config_function(configure)
+
+# %%
+{'a':dump_config_function(configure)}
 
 # %%
 ##Callbacks
@@ -201,7 +211,11 @@ callbacks = [
         update_freq=callback_freq,
     ),
 ]
-ModelBack.dump_data(data=PARAMETRS, model_path=search_dir)
+
+to_dump = dump_config_function(configure)
+to_dump.desc = input(f"Input description: ")
+
+ModelBack.dump_data(to_dump, model_path=search_dir)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
     f'Directory: {search_dir}',

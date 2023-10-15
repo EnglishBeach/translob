@@ -9,11 +9,6 @@ from tensorflow.keras import backend as _K
 from typing import Union as _Union
 from typing import Callable as _Callable
 
-import keras
-
-keras
-tf.keras
-
 
 # Input
 def input_block(seq_len):

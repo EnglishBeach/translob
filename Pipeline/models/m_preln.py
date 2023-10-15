@@ -1,9 +1,9 @@
-import keras
+import tensorflow as tf
 from . import m_base
-# from .m_base import blocks
+from tensorflow.keras.utils import get_custom_objects as _get_custom_objects
 
 
-class TransformerLayer(keras.layers.Layer):
+class TransformerLayer(tf.keras.layers.Layer):
     """
     A pseudo-layer combining together all nuts and bolts to assemble
     a complete section of both the Transformer and the Universal Transformer
@@ -32,7 +32,7 @@ class TransformerLayer(keras.layers.Layer):
         self.norm2_layer = m_base.CustomNormalization()
         self.transition_layer = m_base.TransformerTransition(
             activation='relu', )
-        self.addition_layer = keras.layers.Add()
+        self.addition_layer = tf.keras.layers.Add()
         super().__init__(**kwargs)
 
     def call(self, x, **kwargs):
@@ -49,18 +49,29 @@ class TransformerLayer(keras.layers.Layer):
         return residual_2
 
 
-def transformer_block(input_layer, share_weights, n_blocks, n_heads):
+_get_custom_objects().update({
+    'TransformerLayer': TransformerLayer,
+})
+
+
+def transformer_block(
+    input_layer,
+    *,
+    share_weights,
+    blocks,
+    heads,
+):
     x = input_layer
     tb = TransformerLayer(
-        num_heads=n_heads,
+        num_heads=heads,
         use_masking=True,
     )
-    for block in range(n_blocks):
+    for block in range(blocks):
         if share_weights:
             x = tb(x)
         else:
             x = TransformerLayer(
-                num_heads=n_heads,
+                num_heads=heads,
                 use_masking=True,
             )(x)
 
@@ -68,6 +79,7 @@ def transformer_block(input_layer, share_weights, n_blocks, n_heads):
 
 
 PARAMETRS = m_base.PARAMETRS
+
 
 class blocks(m_base.blocks):
 
@@ -81,35 +93,21 @@ class blocks(m_base.blocks):
         # Model
         inputs = blocks.input_block(seq_len)
         x = inputs
-        x = blocks.cnn_block(
-            input_layer=x,
-            **convolutional
-        )
-        x = blocks.norm_block(input_layer=x)
-        x = blocks.positional_encoder_block(input_layer=x)
-        x = transformer_block(
-            input_layer=x,
-            n_blocks=an__blocks,
-            n_heads=an__attention_heads,
-            share_weights=an__share_weights,
-        )
-        x = blocks.ffn_block(
-            input_layer=x,
-            units=ff__units,
-            dropout_rate=ff__dropout_rate,
-            activation=ff__activation,
-            kernel_regularizer=ff__kernel_regularizer,
-            kernel_initializer=ff__kernel_initializer,
-        )
+        x = blocks.cnn_block(x, **convolutional)
+        x = blocks.norm_block(x)
+        x = blocks.positional_encoder_block(x)
+        x = transformer_block(x, **transformer)
+        x = blocks.ffn_block(x, **feed_forward)
 
-        model = keras.Model(inputs=inputs, outputs=x)
+        model = tf.keras.Model(inputs=inputs, outputs=x)
 
         # Compile
         model.compile(
             optimizer,
-            loss=keras.losses.SparseCategoricalCrossentropy(),
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(),
             metrics=[
-                keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
+                tf.keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
+                tf.keras.metrics.CategoricalAccuracy(name='acc'),
             ],
         )
         return model

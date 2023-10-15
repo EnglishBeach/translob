@@ -2,6 +2,7 @@ import os as _os
 import datetime as _datetime
 import numpy as _np
 import tensorflow as _tf
+import keras_tuner as _keras_tuner
 import json as _json
 import pathlib as _pathlib
 from sklearn.model_selection import train_test_split as _train_test_split
@@ -10,6 +11,7 @@ from tensorflow.keras.utils import timeseries_dataset_from_array as _timeseries_
 
 # download FI2010 dataset from
 # https://etsin.fairdata.fi/dataset/73eb48d7-4dbc-4a10-a52a-da745b47a649
+
 
 class DataClass:
     """
@@ -120,7 +122,7 @@ class DataClass:
 
         result = ''
         if not isinstance(self, DataClass):
-            result= self
+            result = self
             if '<' in repr(self):
                 result = repr(self).split('at')[0].replace('<', '').strip()
 
@@ -402,10 +404,43 @@ class ModelBack:
         return model, new_name
 
     @classmethod
-    def dump_data(cls, data:DataClass, model_path):
+    def dump_data(cls, data: DataClass, model_path):
         _pathlib.Path(model_path).mkdir(parents=True, exist_ok=True)
-        params_str= str(data.DATA_NESTED)
-        params_dict = eval(params_str.replace('<',"'<").replace('>',">'"))
-        with open(f'{model_path}/descriprion.json',
-                  'w') as file:
+        params_str = str(data.DATA_NESTED)
+        params_dict = eval(params_str.replace('<', "'<").replace('>', ">'"))
+        with open(f'{model_path}/descriprion.json', 'w') as file:
             _json.dump(params_dict, file, indent=2)
+
+
+def dump_config_function(configure_function):
+
+    def hyper_dump(var):
+        var_type = var['class_name']
+        default = var['config']['default']
+
+        if var_type in ['Int', 'Float']:
+            diap = f"[{var['config']['min_value']} : {var['config']['max_value']}]"
+            steps = f"{var['config']['sampling']} {var['config']['step']}"
+            values = f"{diap} by {steps}"
+        elif var_type == 'Choice':
+            values = var['config']['values']
+        elif var_type == 'Boolean':
+            values = 'True/False'
+        else:
+            values = ''
+
+        result = {'type': var_type}
+        result.update({
+            'values': values,
+            'default': var['config']['default'],
+            'conditions': var['config']['conditions'],
+        })
+
+        return var['config']['name'], result
+
+    configurated_params = configure_function(_keras_tuner.HyperParameters(),dump=True)
+    hp_config = configurated_params.get_config()
+
+    param_dataclass = DataClass(
+        dict([hyper_dump(variable) for variable in hp_config['space']]))
+    return param_dataclass
