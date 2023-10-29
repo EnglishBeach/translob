@@ -77,7 +77,7 @@ class DataClass:
             setattr(self, key, value)
 
     @__not_data
-    def copy(self):
+    def COPY(self):
         return DataClass(self.DATA_NESTED)
 
     def __get_all_fields(self):
@@ -187,7 +187,7 @@ class DataClass:
             return result
 
     @__not_data
-    def compare(self, compared):
+    def COMPARE(self, compared):
         return DataClass(self.__rec_compare(compared))
 
     def __rec_compare(self, compared, self_name=None):
