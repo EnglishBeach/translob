@@ -76,8 +76,11 @@ class DataClass:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    @__not_data
+    def copy(self):
+        return DataClass(self.DATA_NESTED)
+
     def __get_all_fields(self):
-        # Add except fields
         options = list(
             filter(
                 lambda x:
@@ -87,27 +90,13 @@ class DataClass:
         return options
 
     def __repr__(self) -> str:
+        return f'<DataClass object: {[field for field in self.__get_all_fields()]}>'
+
+    def __str__(self) -> str:
         """
         Representation of options
         """
         return self.__rec_print()[4:]
-
-    def _rec_print_depr(self, self_margin: str = ''):
-        if not isinstance(self, DataClass):
-            return f'{self}'
-
-        result = self_margin
-        for field_name in self.__get_all_fields():
-            inner_result = DataClass._rec_print_depr(
-                getattr(self, field_name),
-                self_margin + ' ' * 4,
-            )
-            result += f'\n{self_margin}{field_name}: {inner_result}'
-
-        if self_margin == '':
-            return result[1:]
-        else:
-            return result
 
     def __rec_print(
         self,
@@ -123,8 +112,8 @@ class DataClass:
         result = ''
         if not isinstance(self, DataClass):
             result = self
-            if '<' in repr(self):
-                result = repr(self).split('at')[0].replace('<', '').strip()
+            # if '<' in repr(self):
+            #     result = repr(self).split(' at ')[0].replace('<', '').strip()
 
             return f'{self_header}{end if last else tee}{self_name}: {result}\n'
 
@@ -147,15 +136,15 @@ class DataClass:
         """
         Containing options dict
         """
-        return self.__rec_nested()
+        return self.__rec_nest()
 
-    def __rec_nested(self, self_name=None):
+    def __rec_nest(self, self_name=None):
         if not isinstance(self, DataClass):
             return {self_name: self}
 
         result = {}
         for field_name in self.__get_all_fields():
-            inner_result = DataClass.__rec_nested(
+            inner_result = DataClass.__rec_nest(
                 getattr(self, field_name),
                 field_name,
             )
@@ -171,15 +160,15 @@ class DataClass:
     def DATA_EXPANDED(self):
         return {
             compound_key.strip()[2:]: value
-            for value, compound_key in self.__rec_expanded()
+            for value, compound_key in self.__rec_expand()
         }
 
-    def __rec_expanded(self, composite_key=''):
+    def __rec_expand(self, composite_key=''):
         if not isinstance(self, DataClass):
             yield (self, composite_key)
         else:
             for field_name in self.__get_all_fields():
-                for inner_result in DataClass.__rec_expanded(
+                for inner_result in DataClass.__rec_expand(
                         getattr(self, field_name),
                         str(composite_key) + '__' + str(field_name),
                 ):
@@ -196,6 +185,28 @@ class DataClass:
             return DataClass(result.DATA_NESTED)
         else:
             return result
+
+    @__not_data
+    def compare(self, compared):
+        return DataClass(self.__rec_compare(compared))
+
+    def __rec_compare(self, compared, self_name=None):
+        if not isinstance(self, DataClass):
+            return {self_name: (self, compared)}
+
+        result = {}
+        for field_name in self.__get_all_fields():
+            inner_result = DataClass.__rec_compare(
+                getattr(self, field_name),
+                getattr(compared, field_name, None),
+                field_name,
+            )
+            result.update(inner_result)
+
+        if self_name is None:
+            return result
+        else:
+            return {self_name: result}
 
 
 def set_backend(platform):
@@ -425,10 +436,15 @@ class ModelBack:
         return model, new_name
 
     @classmethod
-    def dump(cls, data_info,parametrs: DataClass, model_path,):
+    def dump(
+        cls,
+        data_info,
+        parametrs: DataClass,
+        model_path,
+    ):
         _pathlib.Path(model_path).mkdir(parents=True, exist_ok=True)
         dump_dict = parametrs.DATA_NESTED
-        dump_dict.update({'data_info':data_info})
+        dump_dict.update({'data_info': data_info})
         params_str = str(dump_dict)
         params_dict = eval(params_str.replace('<', "'<").replace('>', ">'"))
         with open(f'{model_path}/descriprion.json', 'w') as file:

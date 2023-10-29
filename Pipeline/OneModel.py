@@ -73,6 +73,7 @@ else: proportion = float(proportion) / 100
 train, val, test = data_back.read_saved_data(proportion=proportion,
                                        train_indexes=[0],
                                        val_indexes=[0])
+print(data_back.last_data_info)
 data_back.inspect_data(train=train, val=val, test=test)
 
 ds_train = data_back.data_to_dataset(data=train, seq_len=seq_len, batch_size=100)
@@ -80,8 +81,8 @@ ds_val = data_back.data_to_dataset(data=val, seq_len=seq_len, batch_size=100)
 data_back.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
-PARAMETRS= DataClass(test_model.PARAMETRS)
-PARAMETRS
+DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
+# print(DEFAULT_PARAMETRS)
 
 # %%
 ## Build
@@ -95,13 +96,14 @@ if restore:
     model, train_name = ModelBack.restore_model(input_name)
 else:
     ## Set up parametrs
+    PARAMETRS= DEFAULT_PARAMETRS.copy()
     model = test_model.blocks.build_model(**PARAMETRS.DATA_NESTED)
     train_name = ModelBack.get_training_name(input_name)
     print(
         f'Pattern model: {test_model.__name__}',
         f'Train name: {train_name}',
         'Parametrs:',
-        PARAMETRS,
+        DEFAULT_PARAMETRS.compare(PARAMETRS),
         sep='\n',
     )
 
@@ -127,6 +129,7 @@ callbacks = [
         save_freq=callback_freq,
     )
 ]
+
 ModelBack.dump(data_info=data_back.last_data_info, parametrs=PARAMETRS,model_path=train_dir)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
