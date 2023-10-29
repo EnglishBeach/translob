@@ -229,7 +229,7 @@ callbacks = [
 to_dump = dump_config_function(configure)
 to_dump.desc = input(f"Input description: ")
 
-ModelBack.dump_data(to_dump, model_path=search_dir)
+ModelBack.dump(to_dump, model_path=search_dir)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
     f'Directory: {search_dir}',

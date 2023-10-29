@@ -219,7 +219,8 @@ def set_backend(platform):
 
 class DataBack:
     dataset_path = r'/dataset/saved_data'
-    last_data_info ={}
+    last_data_info = {}
+
     @staticmethod
     def process_data(
         data,
@@ -271,7 +272,8 @@ class DataBack:
         train = []
         for path in train_paths:
             train_data = _np.loadtxt(path)
-            train.append(self.process_raw_data(
+            train.append(
+                self.process_raw_data(
                     train_data,
                     **process_parametrs,
                 ))
@@ -362,7 +364,6 @@ class DataBack:
                 _np.save(file=f"{self.dataset_path}/x_test{i}.npy", arr=x)
                 _np.save(file=f"{self.dataset_path}/y_test{i}.npy", arr=y)
 
-
     def data_to_dataset(self, data, **process_dataset_kwargs):
         result: _tf.data.Dataset = None
         for i, data in enumerate(data):
@@ -389,6 +390,7 @@ class DataBack:
             print(
                 f'{name: <6}: {[len(dataset)]+ list(dataset.element_spec[0].shape)[1:]}'
             )
+
 
 class ModelBack:
     callback_path = '/Temp/callbacks'
@@ -423,9 +425,11 @@ class ModelBack:
         return model, new_name
 
     @classmethod
-    def dump_data(cls, data: DataClass, model_path):
+    def dump(cls, data_info,parametrs: DataClass, model_path,):
         _pathlib.Path(model_path).mkdir(parents=True, exist_ok=True)
-        params_str = str(data.DATA_NESTED)
+        dump_dict = parametrs.DATA_NESTED
+        dump_dict.update({'data_info':data_info})
+        params_str = str(dump_dict)
         params_dict = eval(params_str.replace('<', "'<").replace('>', ">'"))
         with open(f'{model_path}/descriprion.json', 'w') as file:
             _json.dump(params_dict, file, indent=2)
@@ -457,8 +461,10 @@ def dump_config_function(configure_function):
 
         return var['config']['name'], result
 
-    configurated_params = configure_function(_keras_tuner.HyperParameters(),
-                                             dump=True)
+    configurated_params = configure_function(
+        _keras_tuner.HyperParameters(),
+        dump=True,
+    )
     hp_config = configurated_params.get_config()
 
     param_dataclass = DataClass(

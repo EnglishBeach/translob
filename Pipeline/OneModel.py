@@ -127,7 +127,7 @@ callbacks = [
         save_freq=callback_freq,
     )
 ]
-ModelBack.dump_data(data=PARAMETRS,model_path=train_dir)
+ModelBack.dump(data_info=data_back.last_data_info, parametrs=PARAMETRS,model_path=train_dir)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
     f'Directory: {train_dir}',
