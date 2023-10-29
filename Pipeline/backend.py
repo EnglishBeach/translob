@@ -32,6 +32,7 @@ class DataClass:
         self,
         target_dict: dict = {},
         name: str = '',
+        static=False,
     ):
         for field_name in self.__get_all_fields():
             field = getattr(self, field_name)
@@ -39,17 +40,18 @@ class DataClass:
                 # TODO: add signature
                 field_result = field.__func__
                 setattr(self, field_name, field_result)
-
+        self._static = static
     def __new__(
         cls,
         target_dict: dict = {},
         name: str = '',
+        static=False,
     ):
         """
         build from nested dict
         """
         if target_dict != {}:
-            return DataClass().__rec_build(name, target_dict)
+            return DataClass(static=static).__rec_build(name, target_dict)
 
         result = super().__new__(cls)
         result.DATA_UPDATE()
@@ -59,7 +61,7 @@ class DataClass:
         if not isinstance(field, dict):
             return field
 
-        result_dataclass = DataClass()
+        result_dataclass = DataClass(static=self._static)
         for inner_field_name, inner_field in field.items():
             inner_result = result_dataclass.__rec_build(
                 inner_field_name,
@@ -78,7 +80,7 @@ class DataClass:
 
     @__not_data
     def COPY(self):
-        return DataClass(self.DATA)
+        return DataClass(self.DATA,static=self._static)
 
     def __get_all_fields(self):
         filter_func = lambda x: (x[0] != '_') and (x not in self.__not_data(
@@ -133,7 +135,7 @@ class DataClass:
         """
         Containing options dict
         """
-        return self._data_nested
+        return self._data_nested if self._static else self.__rec_nest()
 
     @__not_data
     def DATA_UPDATE(self):
