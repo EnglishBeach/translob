@@ -18,6 +18,7 @@ class DataClass:
     make only lover case parametrs and not start with _
     All this methods (exept __call__) only for beauty representation :)
     """
+    _data_nested = {}
 
     @staticmethod
     def __not_data(field=None, get=False, not_data_fields: set = set()):
@@ -48,26 +49,25 @@ class DataClass:
         build from nested dict
         """
         if target_dict != {}:
-            result = DataClass()
-            return result.__rec_build(name, target_dict)
-        return super().__new__(cls)
+            return DataClass().__rec_build(name, target_dict)
+
+        result = super().__new__(cls)
+        result.DATA_UPDATE()
+        return result
 
     def __rec_build(self, field_name: str, field):
         if not isinstance(field, dict):
-            setattr(self, field_name, field)
-            return None
+            return field
 
-        result = DataClass()
-        setattr(self, field_name, result)
-
+        result_dataclass = DataClass()
         for inner_field_name, inner_field in field.items():
-            inner_result = result.__rec_build(
+            inner_result = result_dataclass.__rec_build(
                 inner_field_name,
                 inner_field,
             )
-            if inner_result is not None:
-                setattr(self, field_name, inner_result)
-        return result
+            setattr(result_dataclass, inner_field_name, inner_result)
+        result_dataclass.DATA_UPDATE()
+        return result_dataclass
 
     def __call__(self, **kwargs: dict):
         """
@@ -78,16 +78,13 @@ class DataClass:
 
     @__not_data
     def COPY(self):
-        return DataClass(self.DATA_NESTED)
+        return DataClass(self.DATA)
 
     def __get_all_fields(self):
-        options = list(
-            filter(
-                lambda x:
-                (x[0] != '_') and (x not in self.__not_data(get=True)),
-                dir(self),
-            ))
-        return options
+        filter_func = lambda x: (x[0] != '_') and (x not in self.__not_data(
+            get=True))
+        fields = [field for field in self.__dir__() if filter_func(field)]
+        return fields
 
     def __repr__(self) -> str:
         return f'<DataClass object: {[field for field in self.__get_all_fields()]}>'
@@ -132,11 +129,15 @@ class DataClass:
 
     @property
     @__not_data
-    def DATA_NESTED(self):
+    def DATA(self):
         """
         Containing options dict
         """
-        return self.__rec_nest()
+        return self._data_nested
+
+    @__not_data
+    def DATA_UPDATE(self):
+        self._data_nested = self.__rec_nest()
 
     def __rec_nest(self, self_name=None):
         if not isinstance(self, DataClass):
@@ -149,11 +150,7 @@ class DataClass:
                 field_name,
             )
             result.update(inner_result)
-
-        if self_name is None:
-            return result
-        else:
-            return {self_name: result}
+        return {self_name: result} if self_name is not None else result
 
     @property
     @__not_data
@@ -175,16 +172,20 @@ class DataClass:
                     yield inner_result
 
     def __getitem__(self, value):
-        if isinstance(value, list | tuple):
+        if isinstance(value, list):
             result = {}
-            for i in value:
-                result.update({i: getattr(self, i, None)})
-            return DataClass(result)
-        result = getattr(self, value, None)
-        if isinstance(result, DataClass):
-            return DataClass(result.DATA_NESTED)
+            for i_value in value:
+                result.update({i_value: getattr(self, i_value, None)})
+            result = DataClass(result)
+
+        elif isinstance(value, tuple):
+            result = self
+            for i_value in value:
+                result = getattr(result, i_value, None)
         else:
-            return result
+            result = getattr(self, value, None)
+
+        return result
 
     @__not_data
     def COMPARE(self, compared):
@@ -229,7 +230,7 @@ def set_backend(platform):
 
 
 class DataBack:
-    dataset_path=r'/dataset/saved_data'
+    dataset_path = r'/dataset/saved_data'
 
     last_data_info = {}
 
@@ -406,6 +407,7 @@ class DataBack:
 
 class ModelBack:
     callback_path = '/Temp/callbacks'
+
     @staticmethod
     def _get_time_tag():
         time_now = _datetime.datetime.now(
@@ -443,10 +445,14 @@ class ModelBack:
         model_path,
     ):
         _pathlib.Path(model_path).mkdir(parents=True, exist_ok=True)
-        dump_dict = parametrs.DATA_NESTED
+        dump_dict = parametrs.DATA
         dump_dict.update({'data_info': data_info})
-        params_str = str(dump_dict)
-        params_dict = eval(params_str.replace('<', "'<").replace('>', ">'"))
+        params_str = (str(dump_dict)
+                      .replace("<class '", "<class ")
+                      .replace("'>", ">")
+                      .replace('<', "'<")
+                      .replace('>', ">'")) #yapf:disable
+        params_dict = eval(params_str)
         with open(f'{model_path}/descriprion.json', 'w') as file:
             _json.dump(params_dict, file, indent=2)
 
