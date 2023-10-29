@@ -229,7 +229,8 @@ def set_backend(platform):
 
 
 class DataBack:
-    dataset_path = r'/dataset/saved_data'
+    dataset_path=r'/dataset/saved_data'
+
     last_data_info = {}
 
     @staticmethod
@@ -405,7 +406,6 @@ class DataBack:
 
 class ModelBack:
     callback_path = '/Temp/callbacks'
-
     @staticmethod
     def _get_time_tag():
         time_now = _datetime.datetime.now(

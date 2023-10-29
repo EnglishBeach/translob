@@ -49,15 +49,16 @@ if platform == 'colab':
 elif platform == 'kaggle':
     kaggle_action()
 
-
 import backend as B
+
 B.set_backend(platform)
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-from backend import DataBack,ModelBack,DataClass
+from backend import DataBack, ModelBack, DataClass
+
 seq_len = 100
 
 # %%
@@ -87,7 +88,7 @@ ds_val = data_back.data_to_dataset(data=val, seq_len=seq_len, batch_size=100)
 data_back.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
-DEFAULT_PARAMETRS= DataClass(test_model.PARAMETRS)
+DEFAULT_PARAMETRS = DataClass(test_model.PARAMETRS)
 # print(DEFAULT_PARAMETRS)
 
 # %%
@@ -102,7 +103,7 @@ if restore:
     model, train_name = ModelBack.restore_model(input_name)
 else:
     ## Set up parametrs
-    PARAMETRS= DEFAULT_PARAMETRS.COPY()
+    PARAMETRS = DEFAULT_PARAMETRS.COPY()
     model = test_model.blocks.build_model(**PARAMETRS.DATA_NESTED)
     train_name = ModelBack.get_training_name(input_name)
     print(
@@ -135,13 +136,16 @@ callbacks = [
         save_freq=callback_freq,
     )
 ]
-ModelBack.dump(data_info=data_back.last_data_info, parametrs=DEFAULT_PARAMETRS.COMPARE(PARAMETRS),model_path=train_dir)
+ModelBack.dump(
+    data_info=data_back.last_data_info,
+    parametrs=DEFAULT_PARAMETRS.COMPARE(PARAMETRS),
+    model_path=train_dir,
+)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
     f'Directory: {train_dir}',
     sep='\n',
 )
-
 
 # %%
 # %tensorboard

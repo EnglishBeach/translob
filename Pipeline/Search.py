@@ -58,7 +58,7 @@ import pandas as pd
 import tensorflow as tf
 import keras_tuner
 
-from backend import data_container, ModelBack, DataClass,dump_config_function
+from backend import DataBack, ModelBack, DataClass, dump_config_function
 
 seq_len = 100
 
@@ -88,36 +88,43 @@ from models import m_preln as test_model
 proportion = input('Data proportion 100-0 in % (press enter for all): ')
 if proportion == '': proportion = 1
 else: proportion = float(proportion) / 100
+data_back = DataBack()
+train, val, test = data_back.read_saved_data(
+    proportion=proportion,
+    train_indexes=[0],
+    val_indexes=[0],
+)
+data_back.inspect_data(train=train, val=val, test=test)
 
-train, val, test = data_container.read_saved_data(proportion=proportion,
-                                       train_indexes=[0],
-                                       val_indexes=[0])
-data_container.inspect_data(train=train, val=val, test=test)
-
-ds_train = data_container.data_to_dataset(data=train, seq_len=seq_len, batch_size=100)
-ds_val = data_container.data_to_dataset(data=val, seq_len=seq_len, batch_size=100)
-data_container.inspect_dataset(train=ds_train, val=ds_val)
+ds_train = data_back.data_to_dataset(
+    data=train,
+    seq_len=seq_len,
+    batch_size=100,
+)
+ds_val = data_back.data_to_dataset(data=val, seq_len=seq_len, batch_size=100)
+data_back.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
 PARAMETRS = DataClass(test_model.PARAMETRS)
 PARAMETRS
 
+
 # %%
 ## Tuner parametrs
-def configure(hp: keras_tuner.HyperParameters,dump=False):
-    parametrs= DataClass(PARAMETRS.DATA_NESTED)
+def configure(hp: keras_tuner.HyperParameters, dump=False):
+    parametrs = DataClass(PARAMETRS.DATA_NESTED)
     parametrs.convolutional.dilation_steps = hp.Int(
-            'dilation_steps',
-            default=4,
-            min_value=3,
-            max_value=5,
-            step=1,
-        )
+        'dilation_steps',
+        default=4,
+        min_value=3,
+        max_value=5,
+        step=1,
+    )
 
     parametrs.transformer.share_weights = hp.Boolean(
-            'share_weights',
-            default=True,
-        )
+        'share_weights',
+        default=True,
+    )
 
     dropout_rate: hp.Float(
         'dropout_rate',
@@ -139,10 +146,8 @@ def configure(hp: keras_tuner.HyperParameters,dump=False):
         default='softmax',
         values=['softmax', 'none'],
     )
-    choices={'softmax':'softmax','none':None}
+    choices = {'softmax': 'softmax', 'none': None}
     parametrs.feed_forward.out_activation = choices[choice]
-
-
 
     if dump: return hp
     return parametrs
@@ -187,8 +192,6 @@ def configure(hp: keras_tuner.HyperParameters,dump=False):
 #     )
 #     parametrs.optimizer = choices[choice]
 
-
-
 #     if dump: return hp
 #     return parametrs
 
@@ -228,8 +231,11 @@ callbacks = [
 
 to_dump = dump_config_function(configure)
 to_dump.desc = input(f"Input description: ")
-
-ModelBack.dump(to_dump, model_path=search_dir)
+ModelBack.dump(
+    parametrs=to_dump,
+    data_info=data_back.last_data_info,
+    model_path=search_dir,
+)
 print(
     f"Callbacks:\n{[str(type(callback)).split('.')[-1] for callback in callbacks]}",
     f'Directory: {search_dir}',
