@@ -102,11 +102,11 @@ class blocks(m_base.blocks):
         # Model
         inputs = blocks.input_block(seq_len)
         x = inputs
-        x = blocks.cnn_block(x, **convolutional)
+        x = blocks.convolutional_block(x, **convolutional)
         x = blocks.norm_block(x)
         x = blocks.positional_encoder_block(x)
         x = transformer_block(x, **transformer)
-        x = blocks.ffn_block(x, **feed_forward)
+        x = blocks.feed_forward_block(x, **feed_forward)
 
         model = tf.keras.Model(inputs=inputs, outputs=x)
 

@@ -17,7 +17,7 @@ def input_block(seq_len):
 
 
 # CN
-def cnn_block(
+def convolutional_block(
     input_layer,
     *,
     filters,
@@ -451,13 +451,13 @@ def transformer_block(
 
 
 # FFN
-def ffn_block(
+def feed_forward_block(
     input_layer,
     *,
     dropout_rate,
     activation,
     units,
-    kernel_regularizer,
+    kernel_regularizer_class,
     kernel_initializer,
     out_activation,
 ):
@@ -466,7 +466,7 @@ def ffn_block(
     input_layer = tf.keras.layers.Dense(
         units=units,
         activation=activation,
-        kernel_regularizer=kernel_regularizer,
+        kernel_regularizer=kernel_regularizer_class(),
         kernel_initializer=kernel_initializer,
     )(input_layer)
 
@@ -476,6 +476,10 @@ def ffn_block(
         activation=out_activation,
     )(input_layer)
     return out
+
+
+def optimazer_block(optimizer_class, params):
+    return optimizer_class(**params)
 
 
 # parametrs
@@ -494,27 +498,28 @@ PARAMETRS = {
         units = 64,
         dropout_rate=0.1,
         activation=tf.keras.activations.relu,
-        kernel_regularizer=tf.keras.regularizers.L2(),
+        kernel_regularizer_class=tf.keras.regularizers.L2,
         kernel_initializer='glorot_uniform',
         out_activation='softmax',
     ),
-    'optimizer':
-    tf.keras.optimizers.legacy.Adam(
-        learning_rate=0.0001,
-        beta_1=0.9,
-        beta_2=0.999,
-    ),
+    'optimizer':{'optimizer_class': tf.keras.optimizers.legacy.Adam,
+        'params':dict(
+            learning_rate=0.0001,
+            beta_1=0.9,
+            beta_2=0.999,
+    )},
 } #yapf:disable
 
 
 # build
 class blocks:
     input_block = input_block
-    cnn_block = cnn_block
+    convolutional_block = convolutional_block
     norm_block = norm_block
     positional_encoder_block = positional_encoder_block
     transformer_block = transformer_block
-    ffn_block = ffn_block
+    feed_forward_block = feed_forward_block
+    optimazer_block = optimazer_block
 
     def build_model(
         seq_len,
@@ -526,17 +531,16 @@ class blocks:
         # Model
         inputs = blocks.input_block(seq_len)
         x = inputs
-        x = blocks.cnn_block(x, **convolutional)
+        x = blocks.convolutional_block(x, **convolutional)
         x = blocks.norm_block(x)
         x = blocks.positional_encoder_block(x)
         x = blocks.transformer_block(x, **transformer)
-        x = blocks.ffn_block(x, **feed_forward)
+        x = blocks.feed_forward_block(x, **feed_forward)
 
         model = tf.keras.Model(inputs=inputs, outputs=x)
-
         # Compile
         model.compile(
-            optimizer,
+            blocks.optimazer_block(**optimizer),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(),
             metrics=[
                 tf.keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
