@@ -219,9 +219,9 @@ def set_backend(platform):
 
 class DataBack:
     dataset_path = r'/dataset/saved_data'
-
+    last_data_info ={}
     @staticmethod
-    def process_dataset(
+    def process_data(
         data,
         *,
         seq_len,
@@ -243,69 +243,93 @@ class DataBack:
 
         return ds.map(set_shape)
 
-    @staticmethod
-    def process_data(data, *, horizon=1):
+    # TODO: to child class
+    def process_raw_data(self, raw_data, *, horizon=1):
         # 40 == 10 price + volume asks + 10 price + volume bids
-        x = data[:40, :].T
+        x = raw_data[:40, :].T
 
-        y = data[-5 + horizon, :].T
+        y = raw_data[-5 + horizon, :].T
         return [x[:-1], (y[1:] - 1).astype(_np.int32)]  # shift y by 1
 
-    @classmethod
-    def from_files(
-        cls,
-        train_files=[],
-        test_files=[],
-        **process_data_kwargs,
+    # def process_raw_data(self, raw_data, **process_parametrs):
+    #     raise NotImplementedError
+
+    def read_raw_data_files(
+        self,
+        train_paths=[],
+        test_paths=[],
+        **process_parametrs,
     ):
+        self.last_data_info = dict(
+            read_from='raw_data',
+            train_paths=train_paths,
+            test_paths=test_paths,
+            process_parametrs=process_parametrs,
+        )
+        print('Read raw data, info writen to last_data_info.')
+
         train = []
-        for path in train_files:
+        for path in train_paths:
             train_data = _np.loadtxt(path)
-            train.append(cls.process_data(train_data, **process_data_kwargs))
+            train.append(self.process_raw_data(
+                    train_data,
+                    **process_parametrs,
+                ))
 
         test = []
-        for path in test_files:
+        for path in test_paths:
             test_data = _np.loadtxt(path)
 
-            test.append(cls.process_data(test_data, **process_data_kwargs))
+            test.append(self.process_raw_data(
+                test_data,
+                **process_parametrs,
+            ))
         return train, test
 
-    @classmethod
-    def from_saved(
-        cls,
+    def read_saved_data(
+        self,
         proportion=1,
         train_indexes: list = [],
         val_indexes: list = [],
         test_indexes: list = [],
     ):
+        self.last_data_info = dict(
+            read_from='saved',
+            proportion=proportion,
+            train_indexes=train_indexes,
+            val_indexes=val_indexes,
+            test_indexes=test_indexes,
+        )
+        print('Read saved data, info writen to last_data_info.')
+
         restrict = lambda x: x[:int(len(x) * proportion)]
         train = []
         for i in train_indexes:
-            with open(f'{cls.dataset_path}/x_train{i}.npy', 'rb') as file:
+            with open(f'{self.dataset_path}/x_train{i}.npy', 'rb') as file:
                 x = _np.load(file)
                 x = restrict(x)
 
-            with open(f'{cls.dataset_path}/y_train{i}.npy', 'rb') as file:
+            with open(f'{self.dataset_path}/y_train{i}.npy', 'rb') as file:
                 y = _np.load(file)
                 y = restrict(y)
             train.append((x, y))
 
         val = []
         for i in val_indexes:
-            with open(f'{cls.dataset_path}/x_val{i}.npy', 'rb') as file:
+            with open(f'{self.dataset_path}/x_val{i}.npy', 'rb') as file:
                 x = _np.load(file)
                 x = restrict(x)
-            with open(f'{cls.dataset_path}/y_val{i}.npy', 'rb') as file:
+            with open(f'{self.dataset_path}/y_val{i}.npy', 'rb') as file:
                 y = _np.load(file)
                 y = restrict(y)
             val.append((x, y))
 
         test = []
         for i in test_indexes:
-            with open(f'{cls.dataset_path}/x_test{i}.npy', 'rb') as file:
+            with open(f'{self.dataset_path}/x_test{i}.npy', 'rb') as file:
                 x = _np.load(file)
                 x = restrict(x)
-            with open(f'{cls.dataset_path}/y_test{i}.npy', 'rb') as file:
+            with open(f'{self.dataset_path}/y_test{i}.npy', 'rb') as file:
                 y = _np.load(file)
                 y = restrict(y)
             test.append((x, y))
@@ -322,35 +346,31 @@ class DataBack:
             val.append([x_val, y_val])
         return train, val
 
-    @classmethod
-    def save_data(cls, *, train=None, val=None, test=None):
+    def save_data(self, *, train=None, val=None, test=None):
         if train is not None:
             for i, (x, y) in enumerate(train):
-                _np.save(file=f"{cls.dataset_path}/x_train{i}.npy", arr=x)
-                _np.save(file=f"{cls.dataset_path}/y_train{i}.npy", arr=y)
+                _np.save(file=f"{self.dataset_path}/x_train{i}.npy", arr=x)
+                _np.save(file=f"{self.dataset_path}/y_train{i}.npy", arr=y)
 
         if val is not None:
             for i, (x, y) in enumerate(val):
-                _np.save(file=f"{cls.dataset_path}/x_val{i}.npy", arr=x)
-                _np.save(file=f"{cls.dataset_path}/y_val{i}.npy", arr=y)
+                _np.save(file=f"{self.dataset_path}/x_val{i}.npy", arr=x)
+                _np.save(file=f"{self.dataset_path}/y_val{i}.npy", arr=y)
 
         if test is not None:
             for i, (x, y) in enumerate(test):
-                _np.save(file=f"{cls.dataset_path}/x_test{i}.npy", arr=x)
-                _np.save(file=f"{cls.dataset_path}/y_test{i}.npy", arr=y)
+                _np.save(file=f"{self.dataset_path}/x_test{i}.npy", arr=x)
+                _np.save(file=f"{self.dataset_path}/y_test{i}.npy", arr=y)
 
-    @classmethod
-    def build_dataset(cls, data, **process_dataset_kwargs):
-        result = {}
+
+    def data_to_dataset(self, data, **process_dataset_kwargs):
         result: _tf.data.Dataset = None
-
         for i, data in enumerate(data):
-            ds = cls.process_dataset(data, **process_dataset_kwargs)
+            ds = self.process_data(data, **process_dataset_kwargs)
             if i != 0:
                 result = result.concatenate(ds)
             else:
                 result = ds
-
         return result
 
     @staticmethod
@@ -369,7 +389,6 @@ class DataBack:
             print(
                 f'{name: <6}: {[len(dataset)]+ list(dataset.element_spec[0].shape)[1:]}'
             )
-
 
 class ModelBack:
     callback_path = '/Temp/callbacks'
@@ -438,7 +457,8 @@ def dump_config_function(configure_function):
 
         return var['config']['name'], result
 
-    configurated_params = configure_function(_keras_tuner.HyperParameters(),dump=True)
+    configurated_params = configure_function(_keras_tuner.HyperParameters(),
+                                             dump=True)
     hp_config = configurated_params.get_config()
 
     param_dataclass = DataClass(
