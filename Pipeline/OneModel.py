@@ -65,18 +65,19 @@ from models import m_base as test_model
 
 # %%
 ## Load data
+data_back =DataBack()
 proportion = input('Data proportion 100-0 in % (press enter for all): ')
 if proportion == '': proportion = 1
 else: proportion = float(proportion) / 100
 
-train, val, test = DataBack.from_saved(proportion=proportion,
+train, val, test = data_back.read_saved_data(proportion=proportion,
                                        train_indexes=[0],
                                        val_indexes=[0])
-DataBack.inspect_data(train=train, val=val, test=test)
+data_back.inspect_data(train=train, val=val, test=test)
 
-ds_train = DataBack.build_dataset(data=train, seq_len=seq_len, batch_size=100)
-ds_val = DataBack.build_dataset(data=val, seq_len=seq_len, batch_size=100)
-DataBack.inspect_dataset(train=ds_train, val=ds_val)
+ds_train = data_back.data_to_dataset(data=train, seq_len=seq_len, batch_size=100)
+ds_val = data_back.data_to_dataset(data=val, seq_len=seq_len, batch_size=100)
+data_back.inspect_dataset(train=ds_train, val=ds_val)
 
 # %%
 PARAMETRS= DataClass(test_model.PARAMETRS)
