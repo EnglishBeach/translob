@@ -112,7 +112,7 @@ class blocks(m_base.blocks):
 
         # Compile
         model.compile(
-            optimizer,
+            blocks.optimazer_block(**optimizer),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(),
             metrics=[
                 tf.keras.metrics.SparseCategoricalAccuracy(name='sp_acc'),
